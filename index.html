@@ -67,10 +67,13 @@ nav{background:var(--arang-2);border-top:1px solid rgba(255,255,255,.07)}
 .nav-dalam{max-width:1400px;margin:0 auto;padding:8px 12px;display:flex;gap:6px;overflow-x:auto;scrollbar-width:thin}
 .nav-dalam::-webkit-scrollbar{height:4px}
 .nav-dalam::-webkit-scrollbar-thumb{background:#555A66;border-radius:4px}
-.pil{white-space:nowrap;padding:8px 14px;border-radius:999px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.04);
-  color:#D6D9E0;font-size:13px;font-weight:600}
+.pil{white-space:nowrap;padding:6px 15px;border-radius:14px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.04);
+  color:#D6D9E0;font-size:13px;font-weight:600;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  min-height:44px;line-height:1.2}
 .pil:hover{background:rgba(255,255,255,.1)}
+.pil small{font-size:10px;font-weight:600;letter-spacing:.03em;opacity:.62;margin-top:1px;text-transform:uppercase}
 .pil.aktif{background:var(--emas);border-color:var(--emas);color:#241C00}
+.pil.aktif small{opacity:.72;color:#3D2F00}
 
 /* ---------- ISI ---------- */
 main{max-width:1400px;margin:0 auto;padding:18px 16px 60px}
@@ -349,24 +352,26 @@ function muat(manual){
 
 /* ---------- menu & hak akses ---------- */
 var MENU=[
-  {id:'papan',   nama:'Papan Kendali', peran:'*'},
-  {id:'progres', nama:'Progres Harian', peran:'kendali,bos,site,pengawas,finance'},
-  {id:'ltsa',    nama:'LTSA', peran:'kendali,bos,ltsa,finance'},
-  {id:'crane',   nama:'Crane', peran:'kendali,bos,crane,finance'},
-  {id:'manpower',nama:'Manpower & Absensi', peran:'kendali,bos,finance,site,ltsa,pengawas'},
-  {id:'material',nama:'Material & Stok', peran:'kendali,bos,stock,site,finance'},
-  {id:'tagihan', nama:'Tracking Tagihan', peran:'kendali,bos,finance'},
-  {id:'biaya',   nama:'Cost & Untung Rugi', peran:'kendali,bos,finance'},
-  {id:'kendala', nama:'Kendala', peran:'*'},
-  {id:'kpi',     nama:'KPI PIC', peran:'kendali,bos,finance'},
-  {id:'atur',    nama:'Pengaturan', peran:'kendali'}
+  {id:'papan',   nama:'Papan Kendali',      pic:'',                    peran:'*'},
+  {id:'progres', nama:'Progres Harian',     pic:'Fatah / Roli',        peran:'kendali,bos,site,pengawas,finance'},
+  {id:'ltsa',    nama:'LTSA',               pic:'Esti',                peran:'kendali,bos,ltsa,finance'},
+  {id:'crane',   nama:'Crane',              pic:'Trisno',              peran:'kendali,bos,crane,finance'},
+  {id:'manpower',nama:'Manpower & Absensi', pic:'Fatah / Roli / Rian', peran:'kendali,bos,finance,site,ltsa,pengawas'},
+  {id:'material',nama:'Material & Stok',    pic:'Rian / Bunga',        peran:'kendali,bos,stock,site,finance'},
+  {id:'tagihan', nama:'Tracking Tagihan',   pic:'Adel',                peran:'kendali,bos,finance'},
+  {id:'biaya',   nama:'Cost & Untung Rugi', pic:'Ati',                 peran:'kendali,bos,finance'},
+  {id:'kendala', nama:'Kendala',            pic:'Ariel',               peran:'*'},
+  {id:'kpi',     nama:'KPI PIC',            pic:'Ariel',               peran:'kendali,bos,finance'},
+  {id:'atur',    nama:'Pengaturan',         pic:'',                    peran:'kendali'}
 ];
 function boleh(m){ return m.peran==='*' || m.peran.split(',').indexOf(S.peran)>=0 }
 
 function gambar(){
   var m=$('#menu'); m.innerHTML='';
   MENU.filter(boleh).forEach(function(x){
-    var b=el('button','pil'+(S.halaman===x.id?' aktif':''),esc(x.nama));
+    var b=el('button','pil'+(S.halaman===x.id?' aktif':''),
+      '<span>'+esc(x.nama)+'</span>'+(x.pic?'<small>'+esc(x.pic)+'</small>':''));
+    b.title=x.pic?x.nama+' — penanggung jawab: '+x.pic:x.nama;
     b.onclick=function(){ S.halaman=x.id; gambar(); window.scrollTo(0,0); };
     m.appendChild(b);
   });
@@ -546,7 +551,7 @@ function blok(judul,ket,tombol){
 function tabel(kolom,baris,kosongTeks){
   if(!baris.length) return el('div','kosong','<b>Belum ada data</b>'+esc(kosongTeks||'Data akan muncul di sini setelah diinput.'));
   var g=el('div','gulung'); var t=el('table');
-  var th='<tr>'+kolom.map(function(k){return '<th>'+esc(k.judul)+'</th>'}).join('')+'</tr>';
+  var th='<tr>'+kolom.map(function(k){return '<th'+(k.kanan?' class="kanan-teks"':'')+'>'+esc(k.judul)+'</th>'}).join('')+'</tr>';
   var tb=baris.map(function(r){
     return '<tr>'+kolom.map(function(k){
       var v=k.isi(r); return '<td'+(k.kanan?' class="kanan-teks"':'')+'>'+(v===undefined?'':v)+'</td>';
@@ -621,19 +626,23 @@ function halPapan(w){
   bP._isi.appendChild(papan);
   w.appendChild(bP);
 
-  var sumber=blok('Sumber data','Project Control membaca, tidak menggandakan input');
+  var sumber=blok('Sumber data','Progres, absensi, LTSA, crane, material, dan biaya diinput di sini. Tagihan dibaca dari aplikasi Tracking Tagihan.');
   var ip=S.luar.insulasiProgres||{}, tgh=S.luar.tagihan||{};
-  sumber._isi.innerHTML=
-    '<div class="alarm '+(ip.ok?'aman':'tinggi')+'"><span class="ikon">'+(ip.ok?'✔':'●')+'</span><div><b>Dashboard Insulation BMKP (MA1–MA3)</b>'+
-    '<p>'+(ip.ok?((ip.baris||[]).length+' baris progres & '+(((S.luar.insulasiAbsensi||{}).baris)||[]).length+' baris absensi terbaca. Input tetap di aplikasi itu.'):'Belum tersambung: '+esc(ip.pesan||'ID sheet belum diisi di Pengaturan.'))+'</p></div></div>'+
+  var isiSumber=
     '<div class="alarm '+(tgh.ok?'aman':'tinggi')+'"><span class="ikon">'+(tgh.ok?'✔':'●')+'</span><div><b>Tracking Tagihan Unit Rate Isolasi 2026</b>'+
-    '<p>'+(tgh.ok?((tgh.baris||[]).length+' tagihan terbaca dari sheet Tracking Tagihan.'):'Belum tersambung: '+esc(tgh.pesan||'ID sheet belum diisi di Pengaturan.'))+'</p></div></div>';
+    '<p>'+(tgh.ok?((tgh.baris||[]).length+' tagihan terbaca. Perubahan tahapan tetap dilakukan di aplikasi Tracking Tagihan.'):'Belum tersambung: '+esc(tgh.pesan||'ID sheet belum diisi di Pengaturan.'))+'</p></div></div>';
+  if(S.konfig.SHEET_INSULASI_ID){
+    isiSumber+=
+      '<div class="alarm '+(ip.ok?'aman':'sedang')+'"><span class="ikon">'+(ip.ok?'✔':'▲')+'</span><div><b>Arsip Dashboard Insulation (opsional)</b>'+
+      '<p>'+(ip.ok?((ip.baris||[]).length+' baris progres & '+(((S.luar.insulasiAbsensi||{}).baris)||[]).length+' baris absensi ikut terbaca dari sheet lama.'):esc(ip.pesan||'Tidak terbaca')+' — kosongkan ID-nya di Pengaturan bila sheet lama tidak dipakai lagi.')+'</p></div></div>';
+  }
+  sumber._isi.innerHTML=isiSumber;
   w.appendChild(sumber);
 }
 
 /* ---------- 2. PROGRES HARIAN ---------- */
 function halProgres(w){
-  w.appendChild(kepalaHal('Progres Harian','MA1–MA3 dibaca dari Dashboard Insulation · proyek lain diinput di sini'));
+  w.appendChild(kepalaHal('Progres Harian','Semua proyek diinput di sini — sisa pekerjaan otomatis terbawa sebagai carry over'));
 
   var pr=progresSemua().sort(function(a,b){return b.tanggal<a.tanggal?-1:1});
   var pilih=S.tabAktif.progres||'7';
@@ -682,17 +691,20 @@ function halProgres(w){
   w.appendChild(b2);
 
   if(['kendali','site','pengawas'].indexOf(S.peran)>=0){
-    var b3=blok('Input progres proyek non-insulasi','Untuk MA1–MA3 gunakan Dashboard Insulation supaya tidak dobel input');
+    var b3=blok('Input progres harian','Diisi Drafter/Admin Project setiap hari — satu baris untuk satu line/item pekerjaan');
     b3._isi.appendChild(formulir('Progres',[
       {k:'Tanggal',t:'date',v:hariIni()},
       {k:'Proyek',t:'pilih',o:proyekAktif().map(function(p){return p.Kode})},
-      {k:'Area'},{k:'LineNumber',label:'Line number'},{k:'Pekerjaan'},{k:'Ukuran'},
+      {k:'Area'},{k:'LineNumber',label:'Line number'},
+      {k:'Pekerjaan',t:'pilih',o:['Bongkar pasang insulation','Insulation pipa','Insulation fitting','Insulation dinding','Insulation HE','Steam trace piping','Steam trace welding','Fitting / valve','Repair','Lainnya']},
+      {k:'Ukuran',label:'Ukuran pipa',t:'pilih',o:['1/2"','3/4"','1"','1 1/2"','2"','3"','4"','6"','8"','10"','12"','14"','16"','Lainnya']},
       {k:'Satuan',t:'pilih',o:['M','M2','Pcs','Lot','Unit','Kg']},
       {k:'Plan',t:'number'},{k:'Actual',t:'number'},
       {k:'Status',t:'pilih',o:['Planned','On Progress','Done','Hold']},
       {k:'Tenaga',t:'number',label:'Jumlah tenaga kerja'},
       {k:'Kendala',t:'area'},{k:'NoDokumen',label:'No. drawing / dokumen'}
     ],function(o){ o.Sisa=(angkaDari(o.Plan)-angkaDari(o.Actual))||0; return o; }));
+    b3._isi.appendChild(el('p','catatan','Ukuran di luar daftar tinggal pilih “Lainnya” lalu tulis di kolom Kendala/keterangan — nanti saya tambahkan ke daftar unit rate.'));
     w.appendChild(b3);
   }
 }
@@ -849,7 +861,7 @@ function halCrane(w){
 
 /* ---------- 5. MANPOWER & ABSENSI ---------- */
 function halManpower(w){
-  w.appendChild(kepalaHal('Manpower & Absensi','MA1–MA3 dibaca dari Dashboard Insulation · LTSA & Crane diinput di sini'));
+  w.appendChild(kepalaHal('Manpower & Absensi','Semua proyek — unggah CSV fingerprint atau input manual'));
   var A=absensiSemua();
   var bulan=S.tabAktif.bulan||hariIni().slice(0,7);
   var bulanIni=A.filter(function(x){return x.tanggal.slice(0,7)===bulan});
@@ -905,7 +917,7 @@ function halManpower(w){
   w.appendChild(b2b);
 
   if(['kendali','ltsa','site'].indexOf(S.peran)>=0){
-    var b3=blok('Unggah CSV fingerprint','Untuk LTSA, Crane, dan karyawan BMKP. Absensi MA1–MA3 tetap lewat Dashboard Insulation.');
+    var b3=blok('Unggah CSV fingerprint','Satu berkas untuk seluruh pekerja — sistem mencocokkan sendiri ke database karyawan');
     b3._isi.appendChild(unggahCsv());
     w.appendChild(b3);
 
@@ -1155,7 +1167,7 @@ function halBiaya(w){
     {judul:'Operasional',kanan:1,isi:function(r){return '<span class="mono">'+rupiah(r.operasional)+'</span>'}},
     {judul:'Total biaya',kanan:1,isi:function(r){return '<span class="mono">'+rupiah(r.biaya)+'</span>'}},
     {judul:'Laba / rugi',kanan:1,isi:function(r){
-      return '<span class="mono '+'"><b style="color:'+(r.laba>=0?'var(--hijau)':'var(--merah-alarm)')+'">'+rupiah(r.laba)+'</b></span>'}},
+      return '<span class="mono"><b style="color:'+(r.laba>=0?'var(--hijau)':'var(--merah-alarm)')+'">'+rupiah(r.laba)+'</b></span>'}},
     {judul:'Margin',kanan:1,isi:function(r){return r.margin===null?'—':'<span class="tanda '+(r.margin>=20?'hijau':r.margin>=10?'kuning':'merah')+'">'+r.margin+'%</span>'}}
   ],daftar,'Belum ada data biaya.'));
   b._isi.appendChild(el('p','catatan','Angka revenue mengikuti nilai tagihan yang sudah terbit. Pekerjaan yang sudah selesai tapi belum ditagihkan belum masuk di sini.'));
@@ -1319,7 +1331,7 @@ function halAtur(w){
   /* Sumber data */
   var b=blok('Sumber data','ID Google Sheet aplikasi lain yang dibaca (hanya baca, tidak ditulis)');
   var g=el('div','formulir');
-  [['SHEET_INSULASI_ID','ID sheet DATABASE INSULATION BMKP'],
+  [['SHEET_INSULASI_ID','ID sheet arsip Insulation (opsional — kosongkan bila tidak dipakai)'],
    ['TAB_INSULASI_PROGRES','Nama tab progres'],
    ['TAB_INSULASI_ABSENSI','Nama tab absensi'],
    ['SHEET_TAGIHAN_ID','ID sheet DATABASE TRACKING TAGIHAN BMKP'],
