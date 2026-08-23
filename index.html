@@ -1,0 +1,1501 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>BMKP Project Control Online</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --merah:#A6141C; --merah-tua:#6E0D12; --emas:#D4A017; --emas-muda:#F0C24B;
+  --arang:#1E2026; --arang-2:#2A2D35; --arang-3:#3A3E48;
+  --kertas:#F2F3F6; --putih:#fff; --garis:#D7DAE1;
+  --hijau:#127A46; --hijau-muda:#E4F4EB;
+  --kuning:#B67A00; --kuning-muda:#FCF2DA;
+  --merah-alarm:#C2181F; --merah-muda:#FBE9E9;
+  --biru:#14557E; --biru-muda:#E6F0F7;
+  --abu:#6B707C;
+  --r:10px; --bayang:0 1px 2px rgba(20,22,28,.08),0 6px 18px rgba(20,22,28,.06);
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{font-family:Inter,system-ui,sans-serif;background:var(--kertas);color:var(--arang);font-size:14px;line-height:1.5;-webkit-text-size-adjust:100%}
+h1,h2,h3,h4,.judul{font-family:'Barlow Condensed',Inter,sans-serif;letter-spacing:.02em;margin:0}
+.mono{font-family:'JetBrains Mono',monospace;font-variant-numeric:tabular-nums}
+button,input,select,textarea{font-family:inherit;font-size:14px}
+button{cursor:pointer}
+a{color:var(--biru)}
+
+/* ---------- GERBANG MASUK ---------- */
+#gerbang{position:fixed;inset:0;z-index:60;display:flex;align-items:center;justify-content:center;padding:18px;
+  background:radial-gradient(1200px 600px at 20% -10%,#3A3E48 0%,#1E2026 55%,#141519 100%)}
+.kartu-masuk{width:100%;max-width:420px;background:var(--putih);border-radius:14px;padding:26px;box-shadow:0 24px 60px rgba(0,0,0,.45)}
+.merek{display:flex;align-items:center;gap:12px;margin-bottom:18px}
+.merek .kotak{width:52px;height:52px;border-radius:9px;background:linear-gradient(150deg,var(--merah),var(--merah-tua));
+  display:flex;align-items:center;justify-content:center;color:var(--emas);font-family:'Barlow Condensed';font-weight:700;font-size:20px;letter-spacing:.06em}
+.merek img{width:52px;height:52px;object-fit:contain;border-radius:9px;background:#fff}
+.merek h1{font-size:23px;font-weight:700;line-height:1.05}
+.merek p{margin:2px 0 0;font-size:11.5px;color:var(--abu);letter-spacing:.08em;text-transform:uppercase}
+label{display:block;font-size:12px;font-weight:600;color:var(--arang-2);margin:12px 0 5px;letter-spacing:.01em}
+.isian{width:100%;padding:11px 12px;border:1px solid var(--garis);border-radius:9px;background:#FBFBFD}
+.isian:focus{outline:2px solid var(--emas);outline-offset:1px;border-color:var(--emas)}
+.tombol{border:0;border-radius:9px;padding:11px 16px;font-weight:600;background:var(--arang);color:#fff}
+.tombol.utama{background:linear-gradient(150deg,var(--merah),var(--merah-tua));width:100%;margin-top:18px;padding:13px;font-size:15px}
+.tombol.emas{background:var(--emas);color:#241C00}
+.tombol.garis{background:#fff;color:var(--arang);border:1px solid var(--garis)}
+.tombol.kecil{padding:7px 11px;font-size:12.5px;border-radius:8px}
+.tombol:disabled{opacity:.5;cursor:not-allowed}
+.pesan{margin-top:12px;padding:10px 12px;border-radius:9px;font-size:13px;display:none}
+.pesan.galat{display:block;background:var(--merah-muda);color:#8A1218}
+.pesan.baik{display:block;background:var(--hijau-muda);color:#0B5730}
+
+/* ---------- KEPALA ---------- */
+header{position:sticky;top:0;z-index:40;background:linear-gradient(120deg,var(--arang) 0%,var(--arang-2) 62%,var(--merah-tua) 160%);color:#fff}
+.kepala-dalam{max-width:1400px;margin:0 auto;padding:10px 16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.kepala-dalam .merek h1{color:#fff;font-size:20px}
+.kepala-dalam .merek p{color:#B9BDC7}
+.kepala-dalam .merek .kotak,.kepala-dalam .merek img{width:40px;height:40px;font-size:16px}
+.sisa{margin-left:auto;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.chip{display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:999px;font-size:11.5px;font-weight:600;
+  background:rgba(255,255,255,.1);color:#EDEFF3;border:1px solid rgba(255,255,255,.14)}
+.chip .titik{width:7px;height:7px;border-radius:50%;background:var(--emas)}
+.chip.hidup .titik{background:#39D98A}
+.chip.mati .titik{background:#FF6B6B}
+nav{background:var(--arang-2);border-top:1px solid rgba(255,255,255,.07)}
+.nav-dalam{max-width:1400px;margin:0 auto;padding:8px 12px;display:flex;gap:6px;overflow-x:auto;scrollbar-width:thin}
+.nav-dalam::-webkit-scrollbar{height:4px}
+.nav-dalam::-webkit-scrollbar-thumb{background:#555A66;border-radius:4px}
+.pil{white-space:nowrap;padding:8px 14px;border-radius:999px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.04);
+  color:#D6D9E0;font-size:13px;font-weight:600}
+.pil:hover{background:rgba(255,255,255,.1)}
+.pil.aktif{background:var(--emas);border-color:var(--emas);color:#241C00}
+
+/* ---------- ISI ---------- */
+main{max-width:1400px;margin:0 auto;padding:18px 16px 60px}
+.blok{background:var(--putih);border:1px solid var(--garis);border-radius:var(--r);box-shadow:var(--bayang);margin-bottom:16px;overflow:hidden}
+.blok-kepala{display:flex;align-items:center;gap:10px;padding:13px 16px;border-bottom:1px solid var(--garis);flex-wrap:wrap}
+.blok-kepala h2{font-size:19px;font-weight:600}
+.blok-kepala .ket{font-size:12px;color:var(--abu)}
+.blok-kepala .kanan{margin-left:auto;display:flex;gap:7px;flex-wrap:wrap}
+.blok-isi{padding:16px}
+.judul-hal{display:flex;align-items:baseline;gap:12px;margin:2px 0 14px;flex-wrap:wrap}
+.judul-hal h2{font-size:26px;font-weight:700}
+.judul-hal span{font-size:13px;color:var(--abu)}
+
+/* Papan kendali proyek — panel ruang kendali */
+.papan{display:grid;grid-template-columns:repeat(auto-fill,minmax(268px,1fr));gap:12px}
+.proyek{border:1px solid var(--garis);border-radius:var(--r);background:#fff;box-shadow:var(--bayang);overflow:hidden}
+.proyek .atas{padding:12px 14px;background:var(--arang);color:#fff;display:flex;align-items:center;gap:9px}
+.proyek .atas .kode{font-family:'Barlow Condensed';font-size:21px;font-weight:700;color:var(--emas);letter-spacing:.04em}
+.proyek .atas .jenis{margin-left:auto;font-size:10.5px;text-transform:uppercase;letter-spacing:.1em;color:#B9BDC7}
+.proyek .nama{padding:10px 14px 4px;font-size:12.5px;color:var(--abu);min-height:44px}
+.lampu{display:flex;gap:6px;padding:0 14px 10px;flex-wrap:wrap}
+.lampu i{width:9px;height:9px;border-radius:50%;background:#DDE0E6;display:inline-block}
+.lampu i.merah{background:var(--merah-alarm);box-shadow:0 0 0 3px rgba(194,24,31,.16)}
+.lampu i.kuning{background:var(--kuning);box-shadow:0 0 0 3px rgba(182,122,0,.14)}
+.lampu i.hijau{background:var(--hijau)}
+.baris-angka{display:grid;grid-template-columns:1fr 1fr;border-top:1px solid var(--garis)}
+.baris-angka div{padding:9px 14px;border-right:1px solid var(--garis)}
+.baris-angka div:nth-child(2n){border-right:0}
+.baris-angka b{display:block;font-family:'JetBrains Mono';font-size:16px;font-weight:700}
+.baris-angka span{font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--abu)}
+.bar{height:6px;background:#E9EBEF;border-radius:4px;overflow:hidden;margin-top:6px}
+.bar i{display:block;height:100%;background:linear-gradient(90deg,var(--emas),var(--merah))}
+
+.kpi-baris{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:16px}
+.kpi{border-radius:var(--r);padding:13px 14px;color:#fff;box-shadow:var(--bayang)}
+.kpi span{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.08em;opacity:.85}
+.kpi b{display:block;font-family:'JetBrains Mono';font-size:22px;font-weight:700;margin-top:3px}
+.kpi small{font-size:11px;opacity:.85}
+.kpi.a{background:linear-gradient(150deg,#A6141C,#6E0D12)}
+.kpi.b{background:linear-gradient(150deg,#14557E,#0B3550)}
+.kpi.c{background:linear-gradient(150deg,#127A46,#0A4E2C)}
+.kpi.d{background:linear-gradient(150deg,#B67A00,#7A5200)}
+.kpi.e{background:linear-gradient(150deg,#3A3E48,#1E2026)}
+
+.alarm{display:flex;gap:10px;align-items:flex-start;padding:11px 13px;border-radius:9px;margin-bottom:8px;border:1px solid transparent}
+.alarm b{font-size:13px}
+.alarm p{margin:2px 0 0;font-size:12.5px}
+.alarm.tinggi{background:var(--merah-muda);border-color:#F1C9CA;color:#7E1015}
+.alarm.sedang{background:var(--kuning-muda);border-color:#EEDFB6;color:#7A5200}
+.alarm.aman{background:var(--hijau-muda);border-color:#C6E6D4;color:#0B5730}
+.alarm .ikon{font-size:16px;line-height:1.2}
+
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;background:#F7F8FA;border-bottom:1px solid var(--garis);padding:9px 10px;font-size:11.5px;
+  text-transform:uppercase;letter-spacing:.05em;color:var(--abu);font-weight:600;white-space:nowrap}
+td{border-bottom:1px solid #EDEFF3;padding:9px 10px;vertical-align:top}
+tr:hover td{background:#FAFBFC}
+.gulung{overflow-x:auto}
+.tanda{display:inline-block;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:600;white-space:nowrap}
+.tanda.hijau{background:var(--hijau-muda);color:#0B5730}
+.tanda.kuning{background:var(--kuning-muda);color:#7A5200}
+.tanda.merah{background:var(--merah-muda);color:#8A1218}
+.tanda.biru{background:var(--biru-muda);color:#0E3D5A}
+.tanda.abu{background:#EEF0F3;color:var(--abu)}
+.kanan-teks{text-align:right}
+
+.formulir{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px}
+.formulir label{margin-top:0}
+.baris-tombol{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}
+.kosong{padding:26px;text-align:center;color:var(--abu);font-size:13px}
+.kosong b{display:block;font-size:15px;color:var(--arang);margin-bottom:4px;font-family:'Barlow Condensed'}
+.catatan{font-size:12px;color:var(--abu);margin-top:8px}
+.pemisah{height:1px;background:var(--garis);margin:16px 0}
+.tab-kecil{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+.tab-kecil button{padding:6px 12px;border-radius:999px;border:1px solid var(--garis);background:#fff;font-size:12.5px;font-weight:600;color:var(--arang-2)}
+.tab-kecil button.aktif{background:var(--arang);color:#fff;border-color:var(--arang)}
+.terkunci{display:flex;align-items:center;gap:8px;padding:12px;border-radius:9px;background:#F7F8FA;border:1px dashed var(--garis);color:var(--abu);font-size:13px}
+
+#roti{position:fixed;left:50%;transform:translateX(-50%);bottom:20px;z-index:70;background:var(--arang);color:#fff;
+  padding:11px 18px;border-radius:999px;font-size:13px;box-shadow:0 10px 30px rgba(0,0,0,.3);display:none;max-width:92vw}
+#roti.tampil{display:block}
+#roti.galat{background:var(--merah-alarm)}
+
+@media(max-width:640px){
+  .judul-hal h2{font-size:22px}
+  .blok-isi{padding:12px}
+  th,td{padding:7px 8px;font-size:12.5px}
+}
+@media print{
+  header,nav,.tombol,#roti,.tab-kecil{display:none!important}
+  body{background:#fff}
+  .blok{box-shadow:none;break-inside:avoid}
+  main{padding:0}
+}
+</style>
+</head>
+<body>
+
+<!-- ============ GERBANG ============ -->
+<div id="gerbang">
+  <div class="kartu-masuk">
+    <div class="merek">
+      <img id="logoMasuk" src="Logo_BMKP.jpg" alt="" onerror="this.outerHTML='<div class=kotak>BMKP</div>'">
+      <div>
+        <h1>PROJECT CONTROL ONLINE</h1>
+        <p>PT. Bumi Marga Kharisma Perkasa</p>
+      </div>
+    </div>
+    <label for="mNama">Nama</label>
+    <input class="isian" id="mNama" autocomplete="username" placeholder="Nama Anda sesuai daftar">
+    <label for="mPin">PIN</label>
+    <input class="isian" id="mPin" type="password" autocomplete="current-password" placeholder="••••">
+    <label style="display:flex;align-items:center;gap:8px;margin-top:12px;font-weight:500">
+      <input type="checkbox" id="mIngat" checked> Ingat saya di perangkat ini
+    </label>
+    <button class="tombol utama" id="mMasuk">Masuk</button>
+    <div class="pesan" id="mPesan"></div>
+    <div style="margin-top:16px;font-size:12px;color:var(--abu)">
+      Belum ada alamat server?
+      <button class="tombol kecil garis" id="mServer" style="margin-left:4px">Atur alamat server</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ APLIKASI ============ -->
+<div id="app" style="display:none">
+<header>
+  <div class="kepala-dalam">
+    <div class="merek">
+      <img src="Logo_BMKP.jpg" alt="" onerror="this.outerHTML='<div class=kotak>BMKP</div>'">
+      <div><h1>PROJECT CONTROL</h1><p id="hSub">Pusat kendali proyek BMKP</p></div>
+    </div>
+    <div class="sisa">
+      <span class="chip" id="hServer"><i class="titik"></i><span>Menghubungkan</span></span>
+      <span class="chip" id="hUser"><i class="titik"></i><span>—</span></span>
+      <button class="tombol kecil emas" id="hSegar">Perbarui data</button>
+      <button class="tombol kecil garis" id="hKeluar">Keluar</button>
+    </div>
+  </div>
+  <nav><div class="nav-dalam" id="menu"></div></nav>
+</header>
+<main id="isi"></main>
+</div>
+
+<div id="roti"></div>
+
+<script>
+/* =========================================================
+   BMKP PROJECT CONTROL ONLINE — index.html
+   Isi URL /exec di bawah supaya tim tidak perlu mengetiknya.
+   ========================================================= */
+var SERVER_URL_BAWAAN = "";   /* <-- tempel URL Web App /exec di sini */
+
+var S = {
+  url: localStorage.getItem('PC_URL') || SERVER_URL_BAWAAN,
+  nama: '', pin: '', peran: '',
+  data: null, konfig: {}, luar: {}, halaman: 'papan', sibuk: false, tabAktif: {}
+};
+
+/* ---------- alat bantu ---------- */
+function $(x){return document.querySelector(x)}
+function el(t,c,h){var e=document.createElement(t); if(c)e.className=c; if(h!==undefined)e.innerHTML=h; return e}
+function esc(s){return String(s===undefined||s===null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
+function roti(t,galat){var r=$('#roti'); r.textContent=t; r.className='tampil'+(galat?' galat':''); clearTimeout(r._t); r._t=setTimeout(function(){r.className=''},3200)}
+function angka(n){n=Number(n)||0; return n.toLocaleString('id-ID',{maximumFractionDigits:1})}
+function rupiah(n){n=Number(n)||0; return 'Rp '+n.toLocaleString('id-ID',{maximumFractionDigits:0})}
+function hariIni(){return tgl(new Date())}
+function tgl(d){d=new Date(d); if(isNaN(d))return ''; return d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2)}
+function tglIndo(s){if(!s)return '—'; var d=new Date(s); if(isNaN(d))return String(s).slice(0,10);
+  var b=['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
+  return d.getDate()+' '+b[d.getMonth()]+' '+d.getFullYear()}
+function selisihHari(a,b){var x=new Date(a),y=new Date(b); if(isNaN(x)||isNaN(y))return 0; return Math.round((y-x)/86400000)}
+function mundur(n){var d=new Date(); d.setDate(d.getDate()-n); return tgl(d)}
+function uuid(){return 'lok-'+Date.now()+'-'+Math.random().toString(16).slice(2,8)}
+
+/* Ambil nilai dari baris sheet luar walau nama kolomnya berbeda */
+function ambil(baris,kandidat){
+  if(!baris) return '';
+  var kunci=Object.keys(baris);
+  for(var i=0;i<kandidat.length;i++){
+    var c=kandidat[i].toLowerCase();
+    for(var j=0;j<kunci.length;j++){
+      var k=kunci[j].toLowerCase().replace(/[^a-z0-9]/g,'');
+      if(k===c.replace(/[^a-z0-9]/g,'')) return baris[kunci[j]];
+    }
+  }
+  for(var i2=0;i2<kandidat.length;i2++){
+    var c2=kandidat[i2].toLowerCase();
+    for(var j2=0;j2<kunci.length;j2++){
+      if(kunci[j2].toLowerCase().indexOf(c2)>=0) return baris[kunci[j2]];
+    }
+  }
+  return '';
+}
+function angkaDari(v){
+  if(typeof v==='number')return v;
+  var s=String(v||'').replace(/[^0-9,.-]/g,'').replace(/\.(?=\d{3}\b)/g,'').replace(',','.');
+  var n=parseFloat(s); return isNaN(n)?0:n;
+}
+
+/* ---------- sambungan server ---------- */
+function api(aksi,tambahan){
+  if(!S.url) return Promise.reject(new Error('Alamat server belum diatur.'));
+  var isi=Object.assign({aksi:aksi,nama:S.nama,pin:S.pin},tambahan||{});
+  return fetch(S.url,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(isi)})
+    .then(function(r){return r.json()})
+    .then(function(j){ if(!j.ok && j.kode==='AUTH'){ keluar(true); } return j; });
+}
+
+function setChip(hidup,teks){
+  var c=$('#hServer'); c.className='chip '+(hidup?'hidup':'mati'); c.lastElementChild.textContent=teks;
+}
+
+/* ---------- masuk / keluar ---------- */
+function pasangGerbang(){
+  var simpanNama=localStorage.getItem('PC_NAMA'), simpanPin=localStorage.getItem('PC_PIN');
+  if(simpanNama) $('#mNama').value=simpanNama;
+  if(simpanPin) $('#mPin').value=atob(simpanPin);
+  $('#mServer').onclick=function(){
+    var u=prompt('Alamat Web App (URL yang berakhiran /exec):',S.url||'');
+    if(u!==null){ S.url=u.trim(); localStorage.setItem('PC_URL',S.url); roti('Alamat server tersimpan.'); }
+  };
+  $('#mMasuk').onclick=masuk;
+  $('#mPin').onkeydown=function(e){ if(e.key==='Enter') masuk(); };
+}
+
+function masuk(){
+  var p=$('#mPesan'); p.className='pesan';
+  S.nama=$('#mNama').value.trim(); S.pin=$('#mPin').value;
+  if(!S.nama||!S.pin){ p.className='pesan galat'; p.textContent='Nama dan PIN harus diisi.'; return; }
+  if(!S.url){ p.className='pesan galat'; p.textContent='Alamat server belum diatur. Tekan "Atur alamat server".'; return; }
+  $('#mMasuk').disabled=true; $('#mMasuk').textContent='Menghubungkan…';
+  api('login',{perangkat:navigator.userAgent.slice(0,60)}).then(function(j){
+    $('#mMasuk').disabled=false; $('#mMasuk').textContent='Masuk';
+    if(!j.ok){ p.className='pesan galat'; p.textContent=j.pesan||'Gagal masuk.'; return; }
+    S.peran=j.user.peran; S.nama=j.user.nama;
+    if($('#mIngat').checked){ localStorage.setItem('PC_NAMA',S.nama); localStorage.setItem('PC_PIN',btoa(S.pin)); }
+    else { localStorage.removeItem('PC_NAMA'); localStorage.removeItem('PC_PIN'); }
+    $('#gerbang').style.display='none'; $('#app').style.display='block';
+    $('#hUser').lastElementChild.textContent=S.nama+' · '+S.peran.toUpperCase();
+    mulai();
+  }).catch(function(e){
+    $('#mMasuk').disabled=false; $('#mMasuk').textContent='Masuk';
+    p.className='pesan galat'; p.textContent='Tidak dapat menghubungi server. Periksa alamat /exec dan koneksi internet.';
+  });
+}
+
+function keluar(paksa){
+  if(!paksa && !confirm('Keluar dari aplikasi?')) return;
+  localStorage.removeItem('PC_PIN');
+  S.pin=''; S.data=null;
+  $('#app').style.display='none'; $('#gerbang').style.display='flex';
+  $('#mPin').value='';
+}
+
+/* ---------- muat data ---------- */
+function mulai(){
+  $('#hSegar').onclick=function(){ muat(true); };
+  $('#hKeluar').onclick=function(){ keluar(); };
+  var simpan=localStorage.getItem('PC_DATA');
+  if(simpan){ try{ var c=JSON.parse(simpan); S.data=c.data; S.konfig=c.data.konfig||{}; S.luar=c.data.luar||{}; setChip(false,'Data tersimpan'); gambar(); }catch(e){} }
+  muat();
+}
+
+function muat(manual){
+  setChip(false,'Menarik data…');
+  return api('tarik',{}).then(function(j){
+    if(!j.ok){ setChip(false,j.pesan||'Gagal'); roti(j.pesan||'Gagal menarik data',true); return; }
+    S.data=j.data; S.konfig=j.data.konfig||{}; S.luar=j.data.luar||{};
+    try{ localStorage.setItem('PC_DATA',JSON.stringify({waktu:Date.now(),data:j.data})); }catch(e){}
+    setChip(true,'Tersambung');
+    gambar();
+    if(manual) roti('Data diperbarui.');
+  }).catch(function(){ setChip(false,'Luar jaringan'); if(manual) roti('Gagal menghubungi server.',true); });
+}
+
+/* ---------- menu & hak akses ---------- */
+var MENU=[
+  {id:'papan',   nama:'Papan Kendali', peran:'*'},
+  {id:'progres', nama:'Progres Harian', peran:'kendali,bos,site,pengawas,finance'},
+  {id:'ltsa',    nama:'LTSA', peran:'kendali,bos,ltsa,finance'},
+  {id:'crane',   nama:'Crane', peran:'kendali,bos,crane,finance'},
+  {id:'manpower',nama:'Manpower & Absensi', peran:'kendali,bos,finance,site,ltsa,pengawas'},
+  {id:'material',nama:'Material & Stok', peran:'kendali,bos,stock,site,finance'},
+  {id:'tagihan', nama:'Tracking Tagihan', peran:'kendali,bos,finance'},
+  {id:'biaya',   nama:'Cost & Untung Rugi', peran:'kendali,bos,finance'},
+  {id:'kendala', nama:'Kendala', peran:'*'},
+  {id:'kpi',     nama:'KPI PIC', peran:'kendali,bos,finance'},
+  {id:'atur',    nama:'Pengaturan', peran:'kendali'}
+];
+function boleh(m){ return m.peran==='*' || m.peran.split(',').indexOf(S.peran)>=0 }
+
+function gambar(){
+  var m=$('#menu'); m.innerHTML='';
+  MENU.filter(boleh).forEach(function(x){
+    var b=el('button','pil'+(S.halaman===x.id?' aktif':''),esc(x.nama));
+    b.onclick=function(){ S.halaman=x.id; gambar(); window.scrollTo(0,0); };
+    m.appendChild(b);
+  });
+  var f={papan:halPapan,progres:halProgres,ltsa:halLtsa,crane:halCrane,manpower:halManpower,
+         material:halMaterial,tagihan:halTagihan,biaya:halBiaya,kendala:halKendala,kpi:halKpi,atur:halAtur}[S.halaman];
+  $('#isi').innerHTML='';
+  if(!S.data){ $('#isi').appendChild(el('div','blok','<div class="kosong"><b>Menunggu data</b>Tekan “Perbarui data”.</div>')); return; }
+  if(!f || !boleh(MENU.filter(function(x){return x.id===S.halaman})[0]||{peran:''})){
+    $('#isi').appendChild(el('div','blok','<div class="kosong"><b>Anda tidak memiliki hak akses ke menu ini.</b>Memerlukan persetujuan Project Control / Management.</div>')); return;
+  }
+  f($('#isi'));
+}
+
+/* =========================================================
+   PENGOLAHAN DATA
+   ========================================================= */
+function proyekAktif(){ return (S.data.Proyek||[]).filter(function(p){return String(p.Status||'Aktif')!=='Selesai'}) }
+
+/* Progres insulasi MA1-MA3 dibaca dari DATABASE INSULATION BMKP (hanya baca) */
+function progresInsulasi(){
+  var L=(S.luar.insulasiProgres||{}).baris||[];
+  return L.map(function(r){
+    return {
+      tanggal: String(ambil(r,['Tanggal','Date'])).slice(0,10),
+      proyek:  String(ambil(r,['Area','Proyek','Project','Lokasi'])||'').toUpperCase().replace(/[^A-Z0-9]/g,'') || '—',
+      item:    ambil(r,['Item','Ukuran','Pekerjaan','Uraian','Size']),
+      rencana: angkaDari(ambil(r,['Rencana','Plan','Target'])),
+      aktual:  angkaDari(ambil(r,['Terpasang','Aktual','Actual','Realisasi','Volume'])),
+      catatan: ambil(r,['Catatan','Kendala','Alasan','Keterangan']),
+      area:    ambil(r,['Area','Lokasi'])
+    };
+  }).filter(function(x){return x.tanggal});
+}
+/* Progres proyek lain (LTSA/Crane/manual) dari tab Progres sendiri */
+function progresSemua(){
+  var a=progresInsulasi();
+  (S.data.Progres||[]).forEach(function(r){
+    a.push({tanggal:String(r.Tanggal||'').slice(0,10),proyek:String(r.Proyek||'').toUpperCase(),
+      item:r.Pekerjaan||r.LineNumber,rencana:angkaDari(r.Plan),aktual:angkaDari(r.Actual),
+      catatan:r.Kendala,area:r.Area});
+  });
+  return a;
+}
+function absensiSemua(){
+  var out=[];
+  ((S.luar.insulasiAbsensi||{}).baris||[]).forEach(function(r){
+    out.push({tanggal:String(ambil(r,['Tanggal','Date'])).slice(0,10),
+      nama:ambil(r,['Nama','Karyawan','Pekerja']),
+      status:String(ambil(r,['Status','Kehadiran'])||'').toUpperCase(),
+      proyek:String(ambil(r,['Area','Proyek','Project'])||'').toUpperCase().replace(/[^A-Z0-9]/g,''),
+      jabatan:ambil(r,['Jabatan','Posisi']), sumber:'Insulasi'});
+  });
+  (S.data.Absensi||[]).forEach(function(r){
+    out.push({tanggal:String(r.Tanggal||'').slice(0,10),nama:r.Nama,status:String(r.Status||'').toUpperCase(),
+      proyek:String(r.Proyek||'').toUpperCase(),jabatan:'',sumber:r.Sumber||'Project Control'});
+  });
+  return out.filter(function(x){return x.tanggal&&x.nama});
+}
+
+/* Rekap tagihan dari DATABASE TRACKING TAGIHAN BMKP */
+function rekapTagihan(){
+  var L=(S.luar.tagihan||{}).baris||[];
+  var T=(S.luar.tagihanTanggal||{}).baris||[];
+  var tglPer={};
+  T.forEach(function(r){
+    var id=String(ambil(r,['IDTagihan','ID','Tagihan','Kode'])||'').trim();
+    if(!id)return;
+    (tglPer[id]=tglPer[id]||[]).push(r);
+  });
+  return L.map(function(r){
+    var id=String(ambil(r,['ID','IDTagihan','Kode'])||'').trim();
+    var nama=ambil(r,['NamaTagihan','Tagihan','Uraian','Nama','Deskripsi']);
+    var area=String(ambil(r,['Area','Proyek','MA'])||'').toUpperCase().replace(/[^A-Z0-9+]/g,'');
+    var nilai=angkaDari(ambil(r,['Nilai','NilaiTagihan','Jumlah','Total','Rp']));
+    var status=String(ambil(r,['Status','Keterangan'])||'').toUpperCase();
+    var posisi=ambil(r,['Posisi','PosisiSekarang','Tahap','Tahapan','Proses']);
+    var hari=angkaDari(ambil(r,['TotalHari','Hari','Umur','Durasi']));
+    var lunas=/LUNAS|BAYAR|CAIR|SELESAI/.test(status);
+    return {id:id,nama:nama||id,area:area||'—',nilai:nilai,status:status||(lunas?'LUNAS':'PROSES'),
+      posisi:posisi||'—',hari:hari,lunas:lunas,pic:ambil(r,['PIC','Penanggung'])};
+  }).filter(function(x){return x.nama&&x.nama!=='—'});
+}
+
+function saldoStok(){
+  var s={};
+  function kunci(k,g){return k+'||'+g}
+  (S.data.StokMasuk||[]).forEach(function(r){ var k=kunci(r.KodeMaterial,r.Gudang); s[k]=(s[k]||0)+angkaDari(r.Qty); });
+  (S.data.StokDO||[]).forEach(function(r){
+    var a=kunci(r.KodeMaterial,r.DariGudang), b=kunci(r.KodeMaterial,r.KeGudang);
+    s[a]=(s[a]||0)-angkaDari(r.Qty); s[b]=(s[b]||0)+angkaDari(r.Qty);
+  });
+  (S.data.StokPakai||[]).forEach(function(r){ var k=kunci(r.KodeMaterial,r.Gudang); s[k]=(s[k]||0)-angkaDari(r.Qty); });
+  (S.data.StokOpname||[]).forEach(function(r){ var k=kunci(r.KodeMaterial,r.Gudang); s[k]=(s[k]||0)+angkaDari(r.Selisih); });
+  return s;
+}
+function saldoTotal(kode){
+  var s=saldoStok(),t=0;
+  Object.keys(s).forEach(function(k){ if(k.split('||')[0]===kode) t+=s[k]; });
+  return t;
+}
+
+/* Ringkasan per proyek + alarm */
+function ringkasProyek(){
+  var K=S.konfig, batasAch=Number(K.AMBANG_ACHIEVEMENT||85), batasBud=Number(K.AMBANG_BUDGET_SISA||15),
+      batasAbs=Number(K.AMBANG_ABSEN||85), batasHari=Number(K.AMBANG_TAGIHAN_HARI||37);
+  var pr=progresSemua(), ab=absensiSemua(), tg=rekapTagihan(), sejak=mundur(7);
+  var kontrak={}; (S.data.Kontrak||[]).forEach(function(k){ kontrak[String(k.KodeProyek).toUpperCase()]=k; });
+
+  return proyekAktif().map(function(p){
+    var kode=String(p.Kode).toUpperCase();
+    var baris=pr.filter(function(x){return x.proyek===kode && x.tanggal>=sejak});
+    var rencana=baris.reduce(function(a,b){return a+b.rencana},0);
+    var aktual=baris.reduce(function(a,b){return a+b.aktual},0);
+    var ach=rencana>0?Math.round(aktual/rencana*100):null;
+
+    var abs=ab.filter(function(x){return x.proyek===kode && x.tanggal>=sejak});
+    var hadir=abs.filter(function(x){return /HADIR|MASUK|DINAS/.test(x.status)}).length;
+    var persenHadir=abs.length?Math.round(hadir/abs.length*100):null;
+    var manpower=(function(){
+      var t=mundur(1), h={};
+      ab.forEach(function(x){ if(x.proyek===kode&&x.tanggal>=t&&/HADIR|MASUK|DINAS/.test(x.status)) h[x.nama]=1; });
+      return Object.keys(h).length;
+    })();
+
+    var k=kontrak[kode];
+    var sisaPersen=null,nilaiKontrak=0,terpakai=0;
+    if(k){ nilaiKontrak=angkaDari(k.NilaiKontrak); terpakai=angkaDari(k.NilaiTerpakai);
+      if(nilaiKontrak>0) sisaPersen=Math.round((nilaiKontrak-terpakai)/nilaiKontrak*100); }
+
+    var tgP=tg.filter(function(t2){return t2.area.indexOf(kode)>=0});
+    var outstanding=tgP.filter(function(t2){return !t2.lunas}).reduce(function(a,b){return a+b.nilai},0);
+    var tagihanLambat=tgP.filter(function(t2){return !t2.lunas && t2.hari>batasHari}).length;
+
+    var kendalaBuka=(S.data.Kendala||[]).filter(function(x){
+      return String(x.Proyek).toUpperCase()===kode && !/SELESAI|CLOSE/i.test(String(x.Status||''));
+    }).length;
+
+    var stokTipis=0;
+    var sal=saldoStok();
+    (S.data.StokMaster||[]).forEach(function(m){
+      var min=angkaDari(m.StokMin)||Number(K.AMBANG_STOK_MIN||0);
+      var t=0; Object.keys(sal).forEach(function(kk){ if(kk.split('||')[0]===m.Kode) t+=sal[kk]; });
+      if(min>0 && t<min) stokTipis++;
+    });
+
+    var alarm=[];
+    if(ach!==null && ach<batasAch) alarm.push({tingkat:'tinggi',judul:'Progres terlambat',ket:kode+': capaian '+ach+'% terhadap rencana 7 hari terakhir (batas '+batasAch+'%).'});
+    if(persenHadir!==null && persenHadir<batasAbs) alarm.push({tingkat:'sedang',judul:'Absensi bermasalah',ket:kode+': kehadiran '+persenHadir+'% dalam 7 hari terakhir.'});
+    if(sisaPersen!==null && sisaPersen<batasBud) alarm.push({tingkat:'tinggi',judul:'Budget menipis',ket:kode+': sisa budget '+sisaPersen+'% dari nilai kontrak.'});
+    if(tagihanLambat) alarm.push({tingkat:'sedang',judul:'Tagihan terlambat',ket:kode+': '+tagihanLambat+' tagihan melewati '+batasHari+' hari.'});
+    if(kendalaBuka) alarm.push({tingkat:kendalaBuka>2?'tinggi':'sedang',judul:'Kendala belum tuntas',ket:kode+': '+kendalaBuka+' kendala masih terbuka.'});
+    if(baris.length===0) alarm.push({tingkat:'sedang',judul:'PIC belum input',ket:kode+': tidak ada progres masuk dalam 7 hari terakhir.'});
+
+    return {p:p,kode:kode,rencana:rencana,aktual:aktual,ach:ach,persenHadir:persenHadir,manpower:manpower,
+      nilaiKontrak:nilaiKontrak,terpakai:terpakai,sisaPersen:sisaPersen,outstanding:outstanding,
+      tagihanLambat:tagihanLambat,kendalaBuka:kendalaBuka,stokTipis:stokTipis,alarm:alarm};
+  });
+}
+
+/* =========================================================
+   HALAMAN
+   ========================================================= */
+function kepalaHal(judul,ket){
+  var d=el('div','judul-hal','<h2>'+esc(judul)+'</h2><span>'+esc(ket||'')+'</span>');
+  return d;
+}
+function blok(judul,ket,tombol){
+  var b=el('div','blok');
+  var k=el('div','blok-kepala','<h2>'+esc(judul)+'</h2>'+(ket?'<span class="ket">'+esc(ket)+'</span>':''));
+  var kanan=el('div','kanan'); (tombol||[]).forEach(function(t){
+    var bt=el('button','tombol kecil '+(t.gaya||'garis'),esc(t.teks)); bt.onclick=t.aksi; kanan.appendChild(bt);
+  });
+  k.appendChild(kanan); b.appendChild(k);
+  var i=el('div','blok-isi'); b.appendChild(i); b._isi=i;
+  return b;
+}
+function tabel(kolom,baris,kosongTeks){
+  if(!baris.length) return el('div','kosong','<b>Belum ada data</b>'+esc(kosongTeks||'Data akan muncul di sini setelah diinput.'));
+  var g=el('div','gulung'); var t=el('table');
+  var th='<tr>'+kolom.map(function(k){return '<th>'+esc(k.judul)+'</th>'}).join('')+'</tr>';
+  var tb=baris.map(function(r){
+    return '<tr>'+kolom.map(function(k){
+      var v=k.isi(r); return '<td'+(k.kanan?' class="kanan-teks"':'')+'>'+(v===undefined?'':v)+'</td>';
+    }).join('')+'</tr>';
+  }).join('');
+  t.innerHTML='<thead>'+th+'</thead><tbody>'+tb+'</tbody>'; g.appendChild(t); return g;
+}
+
+/* ---------- 1. PAPAN KENDALI ---------- */
+function halPapan(w){
+  var R=ringkasProyek();
+  var semuaAlarm=[]; R.forEach(function(r){ r.alarm.forEach(function(a){ semuaAlarm.push(a) }) });
+  var tg=rekapTagihan();
+  var outstanding=tg.filter(function(t){return !t.lunas}).reduce(function(a,b){return a+b.nilai},0);
+  var pr=progresSemua().filter(function(x){return x.tanggal>=mundur(7)});
+  var totAktual=pr.reduce(function(a,b){return a+b.aktual},0), totRencana=pr.reduce(function(a,b){return a+b.rencana},0);
+  var ab=absensiSemua().filter(function(x){return x.tanggal===mundur(1)||x.tanggal===hariIni()});
+  var hadirOrang={}; ab.forEach(function(x){ if(/HADIR|MASUK|DINAS/.test(x.status)) hadirOrang[x.nama]=1 });
+
+  w.appendChild(kepalaHal('Papan Kendali','Ringkasan '+R.length+' proyek aktif · diperbarui '+new Date().toLocaleString('id-ID')));
+
+  var kb=el('div','kpi-baris');
+  kb.innerHTML=
+    '<div class="kpi a"><span>Proyek aktif</span><b>'+R.length+'</b><small>'+R.map(function(r){return r.kode}).join(' · ')+'</small></div>'+
+    '<div class="kpi b"><span>Capaian 7 hari</span><b>'+(totRencana?Math.round(totAktual/totRencana*100):0)+'%</b><small>'+angka(totAktual)+' dari rencana '+angka(totRencana)+'</small></div>'+
+    '<div class="kpi c"><span>Hadir hari ini</span><b>'+Object.keys(hadirOrang).length+'</b><small>orang tercatat hadir</small></div>'+
+    '<div class="kpi d"><span>Tagihan outstanding</span><b style="font-size:17px">'+(S.peran==='site'||S.peran==='pengawas'?'—':rupiah(outstanding))+'</b><small>'+tg.filter(function(t){return !t.lunas}).length+' tagihan berjalan</small></div>'+
+    '<div class="kpi e"><span>Alarm aktif</span><b>'+semuaAlarm.length+'</b><small>'+semuaAlarm.filter(function(a){return a.tingkat==='tinggi'}).length+' perlu tindakan hari ini</small></div>';
+  w.appendChild(kb);
+
+  var bA=blok('Alarm','Ambang batas diatur di menu Pengaturan',[{teks:'Cetak / PDF',aksi:function(){window.print()}}]);
+  if(!semuaAlarm.length){
+    bA._isi.appendChild(el('div','alarm aman','<span class="ikon">✔</span><div><b>Semua proyek dalam batas normal</b><p>Tidak ada capaian, budget, absensi, tagihan, atau kendala yang melewati ambang.</p></div>'));
+  } else {
+    ['tinggi','sedang'].forEach(function(t){
+      semuaAlarm.filter(function(a){return a.tingkat===t}).forEach(function(a){
+        bA._isi.appendChild(el('div','alarm '+t,'<span class="ikon">'+(t==='tinggi'?'●':'▲')+'</span><div><b>'+esc(a.judul)+'</b><p>'+esc(a.ket)+'</p></div>'));
+      });
+    });
+  }
+  w.appendChild(bA);
+
+  var bP=blok('Kondisi tiap proyek','Volume 7 hari terakhir · manpower kemarin · kendala terbuka');
+  var papan=el('div','papan');
+  R.forEach(function(r){
+    var lampu=[
+      {n:'progres',s:r.ach===null?'':(r.ach<Number(S.konfig.AMBANG_ACHIEVEMENT||85)?'merah':'hijau')},
+      {n:'absensi',s:r.persenHadir===null?'':(r.persenHadir<Number(S.konfig.AMBANG_ABSEN||85)?'kuning':'hijau')},
+      {n:'budget',s:r.sisaPersen===null?'':(r.sisaPersen<Number(S.konfig.AMBANG_BUDGET_SISA||15)?'merah':'hijau')},
+      {n:'tagihan',s:r.tagihanLambat?'kuning':'hijau'},
+      {n:'material',s:r.stokTipis?'kuning':'hijau'},
+      {n:'kendala',s:r.kendalaBuka?(r.kendalaBuka>2?'merah':'kuning'):'hijau'}
+    ];
+    var c=el('div','proyek');
+    c.innerHTML=
+      '<div class="atas"><span class="kode">'+esc(r.kode)+'</span><span class="jenis">'+esc(r.p.Jenis||'')+'</span></div>'+
+      '<div class="nama">'+esc(r.p.Nama||'')+'</div>'+
+      '<div class="lampu" title="progres · absensi · budget · tagihan · material · kendala">'+
+        lampu.map(function(l){return '<i class="'+l.s+'" title="'+l.n+'"></i>'}).join('')+'</div>'+
+      '<div class="baris-angka">'+
+        '<div><span>Capaian 7 hari</span><b>'+(r.ach===null?'—':r.ach+'%')+'</b>'+
+          (r.ach===null?'':'<div class="bar"><i style="width:'+Math.min(100,r.ach)+'%"></i></div>')+'</div>'+
+        '<div><span>Volume aktual</span><b>'+angka(r.aktual)+'</b></div>'+
+        '<div><span>Manpower</span><b>'+r.manpower+'</b></div>'+
+        '<div><span>Kendala buka</span><b>'+r.kendalaBuka+'</b></div>'+
+        (['kendali','bos','finance'].indexOf(S.peran)>=0?
+          '<div><span>Sisa budget</span><b>'+(r.sisaPersen===null?'—':r.sisaPersen+'%')+'</b></div>'+
+          '<div><span>Outstanding</span><b style="font-size:13px">'+(r.outstanding?rupiah(r.outstanding):'—')+'</b></div>':'')+
+      '</div>';
+    papan.appendChild(c);
+  });
+  bP._isi.appendChild(papan);
+  w.appendChild(bP);
+
+  var sumber=blok('Sumber data','Project Control membaca, tidak menggandakan input');
+  var ip=S.luar.insulasiProgres||{}, tgh=S.luar.tagihan||{};
+  sumber._isi.innerHTML=
+    '<div class="alarm '+(ip.ok?'aman':'tinggi')+'"><span class="ikon">'+(ip.ok?'✔':'●')+'</span><div><b>Dashboard Insulation BMKP (MA1–MA3)</b>'+
+    '<p>'+(ip.ok?((ip.baris||[]).length+' baris progres & '+(((S.luar.insulasiAbsensi||{}).baris)||[]).length+' baris absensi terbaca. Input tetap di aplikasi itu.'):'Belum tersambung: '+esc(ip.pesan||'ID sheet belum diisi di Pengaturan.'))+'</p></div></div>'+
+    '<div class="alarm '+(tgh.ok?'aman':'tinggi')+'"><span class="ikon">'+(tgh.ok?'✔':'●')+'</span><div><b>Tracking Tagihan Unit Rate Isolasi 2026</b>'+
+    '<p>'+(tgh.ok?((tgh.baris||[]).length+' tagihan terbaca dari sheet Tracking Tagihan.'):'Belum tersambung: '+esc(tgh.pesan||'ID sheet belum diisi di Pengaturan.'))+'</p></div></div>';
+  w.appendChild(sumber);
+}
+
+/* ---------- 2. PROGRES HARIAN ---------- */
+function halProgres(w){
+  w.appendChild(kepalaHal('Progres Harian','MA1–MA3 dibaca dari Dashboard Insulation · proyek lain diinput di sini'));
+
+  var pr=progresSemua().sort(function(a,b){return b.tanggal<a.tanggal?-1:1});
+  var pilih=S.tabAktif.progres||'7';
+  var sejak=pilih==='semua'?'0000-00-00':mundur(Number(pilih));
+  var tampil=pr.filter(function(x){return x.tanggal>=sejak}).slice(0,400);
+
+  var b=blok('Rekap volume','Rencana vs aktual per proyek');
+  var tb=el('div','tab-kecil');
+  [['1','Kemarin & hari ini'],['7','7 hari'],['30','30 hari'],['semua','Semua']].forEach(function(x){
+    var t=el('button',pilih===x[0]?'aktif':'',x[1]);
+    t.onclick=function(){ S.tabAktif.progres=x[0]; gambar(); };
+    tb.appendChild(t);
+  });
+  b._isi.appendChild(tb);
+
+  var perProyek={};
+  tampil.forEach(function(x){
+    var k=x.proyek||'—';
+    perProyek[k]=perProyek[k]||{proyek:k,rencana:0,aktual:0,baris:0};
+    perProyek[k].rencana+=x.rencana; perProyek[k].aktual+=x.aktual; perProyek[k].baris++;
+  });
+  b._isi.appendChild(tabel([
+    {judul:'Proyek',isi:function(r){return '<b>'+esc(r.proyek)+'</b>'}},
+    {judul:'Rencana',kanan:1,isi:function(r){return '<span class="mono">'+angka(r.rencana)+'</span>'}},
+    {judul:'Aktual',kanan:1,isi:function(r){return '<span class="mono">'+angka(r.aktual)+'</span>'}},
+    {judul:'Sisa',kanan:1,isi:function(r){return '<span class="mono">'+angka(Math.max(0,r.rencana-r.aktual))+'</span>'}},
+    {judul:'Capaian',kanan:1,isi:function(r){
+      var a=r.rencana?Math.round(r.aktual/r.rencana*100):null;
+      return a===null?'—':'<span class="tanda '+(a>=95?'hijau':a>=85?'kuning':'merah')+'">'+a+'%</span>'}},
+    {judul:'Baris input',kanan:1,isi:function(r){return r.baris}}
+  ],Object.keys(perProyek).map(function(k){return perProyek[k]}),'Belum ada progres pada rentang ini.'));
+  w.appendChild(b);
+
+  /* Carry over: sisa pekerjaan yang belum tuntas */
+  var co=tampil.filter(function(x){return x.rencana>0 && x.aktual<x.rencana}).slice(0,60);
+  var b2=blok('Carry over / sisa pekerjaan','Pekerjaan yang belum tuntas dan wajib dilanjutkan hari berikutnya');
+  b2._isi.appendChild(tabel([
+    {judul:'Tanggal',isi:function(r){return tglIndo(r.tanggal)}},
+    {judul:'Proyek',isi:function(r){return esc(r.proyek)}},
+    {judul:'Item / line',isi:function(r){return esc(r.item)}},
+    {judul:'Rencana',kanan:1,isi:function(r){return '<span class="mono">'+angka(r.rencana)+'</span>'}},
+    {judul:'Aktual',kanan:1,isi:function(r){return '<span class="mono">'+angka(r.aktual)+'</span>'}},
+    {judul:'Sisa',kanan:1,isi:function(r){return '<span class="mono"><b>'+angka(r.rencana-r.aktual)+'</b></span>'}},
+    {judul:'Alasan',isi:function(r){return esc(r.catatan)||'<span style="color:var(--abu)">belum diisi</span>'}}
+  ],co,'Tidak ada sisa pekerjaan pada rentang ini.'));
+  w.appendChild(b2);
+
+  if(['kendali','site','pengawas'].indexOf(S.peran)>=0){
+    var b3=blok('Input progres proyek non-insulasi','Untuk MA1–MA3 gunakan Dashboard Insulation supaya tidak dobel input');
+    b3._isi.appendChild(formulir('Progres',[
+      {k:'Tanggal',t:'date',v:hariIni()},
+      {k:'Proyek',t:'pilih',o:proyekAktif().map(function(p){return p.Kode})},
+      {k:'Area'},{k:'LineNumber',label:'Line number'},{k:'Pekerjaan'},{k:'Ukuran'},
+      {k:'Satuan',t:'pilih',o:['M','M2','Pcs','Lot','Unit','Kg']},
+      {k:'Plan',t:'number'},{k:'Actual',t:'number'},
+      {k:'Status',t:'pilih',o:['Planned','On Progress','Done','Hold']},
+      {k:'Tenaga',t:'number',label:'Jumlah tenaga kerja'},
+      {k:'Kendala',t:'area'},{k:'NoDokumen',label:'No. drawing / dokumen'}
+    ],function(o){ o.Sisa=(angkaDari(o.Plan)-angkaDari(o.Actual))||0; return o; }));
+    w.appendChild(b3);
+  }
+}
+
+/* ---------- formulir generik ---------- */
+function formulir(tab,medan,sebelumSimpan,setelah){
+  var f=el('div');
+  var g=el('div','formulir');
+  medan.forEach(function(m){
+    var w=el('div');
+    w.appendChild(el('label','',esc(m.label||m.k)));
+    var i;
+    if(m.t==='pilih'){ i=el('select','isian'); i.innerHTML='<option value=""></option>'+(m.o||[]).map(function(x){return '<option>'+esc(x)+'</option>'}).join(''); }
+    else if(m.t==='area'){ i=el('textarea','isian'); i.rows=2; }
+    else { i=el('input','isian'); i.type=m.t||'text'; }
+    i.dataset.k=m.k; if(m.v) i.value=m.v;
+    w.appendChild(i); g.appendChild(w);
+  });
+  f.appendChild(g);
+  var bt=el('div','baris-tombol');
+  var simpan=el('button','tombol utama',''); simpan.textContent='Simpan';
+  simpan.style.width='auto'; simpan.style.marginTop='0';
+  simpan.onclick=function(){
+    var o={};
+    g.querySelectorAll('[data-k]').forEach(function(i){ if(i.value!=='') o[i.dataset.k]=i.value; });
+    if(!Object.keys(o).length){ roti('Isi dulu datanya.',true); return; }
+    if(sebelumSimpan) o=sebelumSimpan(o);
+    simpan.disabled=true; simpan.textContent='Menyimpan…';
+    api('simpan',{tab:tab,baris:[o]}).then(function(j){
+      simpan.disabled=false; simpan.textContent='Simpan';
+      if(!j.ok){ roti(j.pesan||'Gagal menyimpan',true); return; }
+      roti('Tersimpan.');
+      g.querySelectorAll('[data-k]').forEach(function(i){ if(i.type!=='date') i.value=''; });
+      muat().then(function(){ if(setelah) setelah(); });
+    }).catch(function(){ simpan.disabled=false; simpan.textContent='Simpan'; roti('Gagal menghubungi server.',true); });
+  };
+  bt.appendChild(simpan); f.appendChild(bt);
+  return f;
+}
+
+/* ---------- 3. LTSA ---------- */
+function halLtsa(w){
+  w.appendChild(kepalaHal('LTSA — 5 Unit Diesel Engine','PM mingguan · bulanan · 6 bulanan · tahunan · 2 tahunan + unscheduled repair'));
+  var pm=(S.data.LTSA_PM||[]).slice().sort(function(a,b){return String(a.JadwalTanggal)<String(b.JadwalTanggal)?-1:1});
+  var belum=pm.filter(function(x){return !/SELESAI|DONE/i.test(String(x.Status||''))});
+  var lewat=belum.filter(function(x){return x.JadwalTanggal && String(x.JadwalTanggal).slice(0,10)<hariIni()});
+  var selesai=pm.filter(function(x){return /SELESAI|DONE/i.test(String(x.Status||''))});
+
+  var kb=el('div','kpi-baris');
+  kb.innerHTML=
+    '<div class="kpi a"><span>PM lewat jadwal</span><b>'+lewat.length+'</b><small>harus dikejar</small></div>'+
+    '<div class="kpi b"><span>PM terjadwal</span><b>'+belum.length+'</b><small>belum selesai</small></div>'+
+    '<div class="kpi c"><span>PM selesai</span><b>'+selesai.length+'</b><small>sepanjang kontrak</small></div>'+
+    '<div class="kpi d"><span>Repair tercatat</span><b>'+(S.data.LTSA_Repair||[]).length+'</b><small>unscheduled</small></div>';
+  w.appendChild(kb);
+
+  var b=blok('Jadwal PM','Urut tanggal jadwal');
+  b._isi.appendChild(tabel([
+    {judul:'Jadwal',isi:function(r){return tglIndo(r.JadwalTanggal)}},
+    {judul:'Engine',isi:function(r){return '<b>'+esc(r.Engine)+'</b>'}},
+    {judul:'Jenis PM',isi:function(r){return esc(r.JenisPM)}},
+    {judul:'Status',isi:function(r){
+      var s=String(r.Status||'Belum');
+      var w2=/SELESAI|DONE/i.test(s)?'hijau':(String(r.JadwalTanggal).slice(0,10)<hariIni()?'merah':'kuning');
+      return '<span class="tanda '+w2+'">'+esc(s)+'</span>'}},
+    {judul:'Selesai',isi:function(r){return r.TanggalSelesai?tglIndo(r.TanggalSelesai):'—'}},
+    {judul:'Teknisi',isi:function(r){return esc(r.Teknisi)}},
+    {judul:'Nilai tagihan',kanan:1,isi:function(r){return ['kendali','bos','finance'].indexOf(S.peran)>=0?'<span class="mono">'+(angkaDari(r.NilaiTagihan)?rupiah(r.NilaiTagihan):'—')+'</span>':'—'}},
+    {judul:'Kendala',isi:function(r){return esc(r.Kendala)}}
+  ],pm.slice(0,200),'Jadwal PM belum diisi. Tambahkan lewat formulir di bawah.'));
+  w.appendChild(b);
+
+  if(['kendali','ltsa'].indexOf(S.peran)>=0){
+    var b2=blok('Tambah / perbarui jadwal PM','');
+    b2._isi.appendChild(formulir('LTSA_PM',[
+      {k:'Engine',t:'pilih',o:['Engine 1','Engine 2','Engine 3','Engine 4','Engine 5']},
+      {k:'JenisPM',label:'Jenis PM',t:'pilih',o:['PM Mingguan','PM Bulanan','PM 6 Bulanan','PM Tahunan','PM 2 Tahunan']},
+      {k:'JadwalTanggal',label:'Tanggal jadwal',t:'date'},
+      {k:'Status',t:'pilih',o:['Belum','Sedang berjalan','Selesai','Tertunda']},
+      {k:'TanggalSelesai',label:'Tanggal selesai',t:'date'},
+      {k:'Teknisi'},{k:'NilaiTagihan',label:'Nilai tagihan (Rp)',t:'number'},{k:'Kendala',t:'area'}
+    ]));
+    w.appendChild(b2);
+
+    var b3=blok('Unscheduled repair','Pekerjaan di luar PM yang dapat ditagihkan');
+    b3._isi.appendChild(tabel([
+      {judul:'Tanggal',isi:function(r){return tglIndo(r.Tanggal)}},
+      {judul:'Engine',isi:function(r){return esc(r.Engine)}},
+      {judul:'Uraian',isi:function(r){return esc(r.Uraian)}},
+      {judul:'Spare part',isi:function(r){return esc(r.SparePart)}},
+      {judul:'Nilai',kanan:1,isi:function(r){return ['kendali','bos','finance'].indexOf(S.peran)>=0?rupiah(r.Nilai):'—'}},
+      {judul:'Status',isi:function(r){return '<span class="tanda abu">'+esc(r.Status||'—')+'</span>'}}
+    ],(S.data.LTSA_Repair||[]).slice(-50).reverse(),'Belum ada repair tercatat.'));
+    b3._isi.appendChild(el('div','pemisah'));
+    b3._isi.appendChild(formulir('LTSA_Repair',[
+      {k:'Tanggal',t:'date',v:hariIni()},
+      {k:'Engine',t:'pilih',o:['Engine 1','Engine 2','Engine 3','Engine 4','Engine 5']},
+      {k:'Uraian'},{k:'SparePart',label:'Spare part'},{k:'Nilai',t:'number'},
+      {k:'Status',t:'pilih',o:['Usulan','Disetujui','Dikerjakan','Selesai','Ditagihkan']}
+    ]));
+    w.appendChild(b3);
+  }
+}
+
+/* ---------- 4. CRANE ---------- */
+function halCrane(w){
+  w.appendChild(kepalaHal('Crane','2 unit sewa dari rekanan, disewakan ke client · tanpa fingerprint'));
+  var C=(S.data.Crane||[]).slice().reverse();
+  var bulan=hariIni().slice(0,7);
+  var bulanIni=C.filter(function(r){return String(r.Tanggal).slice(0,7)===bulan});
+  var jam=bulanIni.reduce(function(a,b){return a+angkaDari(b.JamKerja)},0);
+  var operasi=bulanIni.filter(function(r){return /OPERASI/i.test(String(r.Status||''))}).length;
+  var bd=bulanIni.filter(function(r){return /BREAKDOWN/i.test(String(r.Status||''))}).length;
+  var pendapatan=bulanIni.reduce(function(a,b){return a+angkaDari(b.TarifKeClient)},0);
+  var biaya=bulanIni.reduce(function(a,b){return a+angkaDari(b.BiayaRekanan)},0);
+
+  var kb=el('div','kpi-baris');
+  kb.innerHTML=
+    '<div class="kpi b"><span>Jam kerja bulan ini</span><b>'+angka(jam)+'</b><small>'+bulanIni.length+' hari tercatat</small></div>'+
+    '<div class="kpi c"><span>Hari operasi</span><b>'+operasi+'</b><small>availability</small></div>'+
+    '<div class="kpi a"><span>Hari breakdown</span><b>'+bd+'</b><small>tidak dapat ditagihkan</small></div>'+
+    (['kendali','bos','finance'].indexOf(S.peran)>=0?
+      '<div class="kpi d"><span>Margin bulan ini</span><b style="font-size:17px">'+rupiah(pendapatan-biaya)+'</b><small>sewa ke client − biaya rekanan</small></div>':'');
+  w.appendChild(kb);
+
+  var b=blok('Log harian crane','');
+  b._isi.appendChild(tabel([
+    {judul:'Tanggal',isi:function(r){return tglIndo(r.Tanggal)}},
+    {judul:'Unit',isi:function(r){return '<b>'+esc(r.Unit)+'</b>'}},
+    {judul:'Operator',isi:function(r){return esc(r.Operator)}},
+    {judul:'Client',isi:function(r){return esc(r.Client)}},
+    {judul:'Jam',kanan:1,isi:function(r){return '<span class="mono">'+angka(r.JamKerja)+'</span>'}},
+    {judul:'Status',isi:function(r){
+      var s=String(r.Status||'');
+      return '<span class="tanda '+(/OPERASI/i.test(s)?'hijau':/BREAKDOWN/i.test(s)?'merah':'abu')+'">'+esc(s||'—')+'</span>'}},
+    {judul:'Catatan',isi:function(r){return esc(r.Catatan)}}
+  ],C.slice(0,120),'Belum ada log crane.'));
+  w.appendChild(b);
+
+  if(['kendali','crane'].indexOf(S.peran)>=0){
+    var b2=blok('Input harian crane','Diisi Admin Crane');
+    b2._isi.appendChild(formulir('Crane',[
+      {k:'Tanggal',t:'date',v:hariIni()},
+      {k:'Unit',t:'pilih',o:['Crane 1','Crane 2']},
+      {k:'Operator'},{k:'Client'},{k:'JamKerja',label:'Jam kerja',t:'number'},
+      {k:'Status',t:'pilih',o:['Operasi','Standby','Breakdown','Mobilisasi','Demobilisasi']},
+      {k:'TarifKeClient',label:'Tarif ke client (Rp)',t:'number'},
+      {k:'BiayaRekanan',label:'Biaya sewa rekanan (Rp)',t:'number'},
+      {k:'Catatan',t:'area'}
+    ]));
+    w.appendChild(b2);
+  }
+}
+
+/* ---------- 5. MANPOWER & ABSENSI ---------- */
+function halManpower(w){
+  w.appendChild(kepalaHal('Manpower & Absensi','MA1–MA3 dibaca dari Dashboard Insulation · LTSA & Crane diinput di sini'));
+  var A=absensiSemua();
+  var bulan=S.tabAktif.bulan||hariIni().slice(0,7);
+  var bulanIni=A.filter(function(x){return x.tanggal.slice(0,7)===bulan});
+
+  var b=blok('Rekap bulanan','Bulan '+bulan,[{teks:'Cetak / PDF',aksi:function(){window.print()}}]);
+  var pilihBulan=el('div','tab-kecil');
+  var daftarBulan={}; A.forEach(function(x){ daftarBulan[x.tanggal.slice(0,7)]=1 });
+  Object.keys(daftarBulan).sort().reverse().slice(0,6).forEach(function(m){
+    var t=el('button',bulan===m?'aktif':'',m);
+    t.onclick=function(){ S.tabAktif.bulan=m; gambar(); };
+    pilihBulan.appendChild(t);
+  });
+  b._isi.appendChild(pilihBulan);
+
+  var per={};
+  bulanIni.forEach(function(x){
+    var o=per[x.nama]=per[x.nama]||{nama:x.nama,proyek:x.proyek,hadir:0,alpa:0,tidakFinger:0,sakit:0,izin:0,off:0,lain:0,total:0};
+    o.total++;
+    var s=x.status;
+    if(/HADIR|MASUK|DINAS/.test(s)) o.hadir++;
+    else if(/ALPA|MANGKIR/.test(s)) o.alpa++;
+    else if(/FINGER/.test(s)) o.tidakFinger++;
+    else if(/SAKIT/.test(s)) o.sakit++;
+    else if(/IZIN/.test(s)) o.izin++;
+    else if(/OFF|LIBUR/.test(s)) o.off++;
+    else o.lain++;
+  });
+  var daftar=Object.keys(per).map(function(k){return per[k]}).sort(function(a,b2){return b2.hadir-a.hadir});
+  b._isi.appendChild(tabel([
+    {judul:'Nama',isi:function(r){return '<b>'+esc(r.nama)+'</b>'}},
+    {judul:'Proyek',isi:function(r){return esc(r.proyek)}},
+    {judul:'Hadir',kanan:1,isi:function(r){return '<span class="mono">'+r.hadir+'</span>'}},
+    {judul:'Alpa',kanan:1,isi:function(r){return r.alpa?'<span class="tanda merah">'+r.alpa+'</span>':'0'}},
+    {judul:'Tidak finger',kanan:1,isi:function(r){return r.tidakFinger?'<span class="tanda kuning">'+r.tidakFinger+'</span>':'0'}},
+    {judul:'Sakit',kanan:1,isi:function(r){return r.sakit}},
+    {judul:'Izin',kanan:1,isi:function(r){return r.izin}},
+    {judul:'Total hari',kanan:1,isi:function(r){return '<span class="mono">'+r.total+'</span>'}}
+  ],daftar,'Belum ada absensi pada bulan ini.'));
+  w.appendChild(b);
+
+  var disiplin=daftar.filter(function(r){return r.total>=5}).slice();
+  var rajin=disiplin.slice().sort(function(a,b2){return (b2.hadir/b2.total)-(a.hadir/a.total)}).slice(0,5);
+  var bolos=disiplin.slice().sort(function(a,b2){return (b2.alpa+b2.tidakFinger)-(a.alpa+a.tidakFinger)}).slice(0,5);
+  var b2b=blok('Sorotan disiplin','Minimal 5 hari tercatat');
+  var kolom=el('div');
+  kolom.innerHTML='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px">'+
+    '<div><h3 style="font-size:15px;margin-bottom:8px">Paling disiplin</h3>'+
+      (rajin.length?rajin.map(function(r){return '<div class="alarm aman" style="padding:8px 11px"><div><b>'+esc(r.nama)+'</b><p>hadir '+r.hadir+' dari '+r.total+' hari</p></div></div>'}).join(''):'<p class="catatan">Belum cukup data.</p>')+'</div>'+
+    '<div><h3 style="font-size:15px;margin-bottom:8px">Perlu perhatian</h3>'+
+      (bolos.filter(function(r){return r.alpa+r.tidakFinger>0}).length?
+        bolos.filter(function(r){return r.alpa+r.tidakFinger>0}).map(function(r){return '<div class="alarm sedang" style="padding:8px 11px"><div><b>'+esc(r.nama)+'</b><p>'+r.alpa+' alpa · '+r.tidakFinger+' tidak finger</p></div></div>'}).join(''):'<p class="catatan">Tidak ada alpa tercatat bulan ini.</p>')+'</div></div>';
+  b2b._isi.appendChild(kolom);
+  w.appendChild(b2b);
+
+  if(['kendali','ltsa','site'].indexOf(S.peran)>=0){
+    var b3=blok('Unggah CSV fingerprint','Untuk LTSA, Crane, dan karyawan BMKP. Absensi MA1–MA3 tetap lewat Dashboard Insulation.');
+    b3._isi.appendChild(unggahCsv());
+    w.appendChild(b3);
+
+    var b4=blok('Input absensi manual','Dipakai bila hari itu tidak ada fingerprint (mis. LTSA hari Senin)');
+    b4._isi.appendChild(formulir('Absensi',[
+      {k:'Tanggal',t:'date',v:hariIni()},
+      {k:'Nama'},
+      {k:'Proyek',t:'pilih',o:proyekAktif().map(function(p){return p.Kode})},
+      {k:'Status',t:'pilih',o:['Hadir','Alpa','Tidak Finger','Sakit','Izin','Off','Dinas','Lainnya']},
+      {k:'JamMasuk',label:'Jam masuk',t:'time'},{k:'JamPulang',label:'Jam pulang',t:'time'}
+    ],function(o){ o.Sumber='Manual'; return o; }));
+    w.appendChild(b4);
+  }
+}
+
+/* Pembaca CSV fingerprint dengan pemetaan kolom sendiri */
+function unggahCsv(){
+  var w=el('div');
+  var inp=el('input','isian'); inp.type='file'; inp.accept='.csv,.txt';
+  w.appendChild(el('label','','Berkas CSV hasil unduhan mesin fingerprint'));
+  w.appendChild(inp);
+  var hasil=el('div'); w.appendChild(hasil);
+
+  inp.onchange=function(){
+    var f=inp.files[0]; if(!f) return;
+    var fr=new FileReader();
+    fr.onload=function(){
+      var teks=String(fr.result);
+      var pemisah=(teks.split('\n')[0].split(';').length>teks.split('\n')[0].split(',').length)?';':',';
+      var baris=teks.split(/\r?\n/).filter(function(x){return x.trim()});
+      if(baris.length<2){ hasil.innerHTML='<div class="alarm tinggi"><div><b>Berkas kosong</b><p>Tidak ada baris data yang terbaca.</p></div></div>'; return; }
+      var kolom=baris[0].split(pemisah).map(function(x){return x.replace(/^"|"$/g,'').trim()});
+      var isi=baris.slice(1).map(function(b){
+        var s=b.split(pemisah).map(function(x){return x.replace(/^"|"$/g,'').trim()});
+        var o={}; kolom.forEach(function(k,i){ o[k]=s[i]||''; }); return o;
+      });
+      gambarPemetaan(kolom,isi);
+    };
+    fr.readAsText(f);
+  };
+
+  function tebak(kolom,kandidat){
+    for(var i=0;i<kandidat.length;i++)
+      for(var j=0;j<kolom.length;j++)
+        if(kolom[j].toLowerCase().indexOf(kandidat[i])>=0) return kolom[j];
+    return '';
+  }
+
+  function gambarPemetaan(kolom,isi){
+    hasil.innerHTML='';
+    hasil.appendChild(el('div','catatan','Terbaca <b>'+isi.length+'</b> baris dengan kolom: '+kolom.map(esc).join(' · ')+'. Cocokkan kolomnya di bawah — pengaturan ini hanya perlu sekali.'));
+    var peta=[
+      {k:'Tanggal',c:['tanggal','date','tgl']},
+      {k:'Nama',c:['nama','name','employee']},
+      {k:'IDFinger',c:['id','no','pin','user'],label:'ID fingerprint'},
+      {k:'JamMasuk',c:['masuk','in','check-in','clock in'],label:'Jam masuk'},
+      {k:'JamPulang',c:['pulang','out','check-out','clock out'],label:'Jam pulang'}
+    ];
+    var g=el('div','formulir');
+    peta.forEach(function(p){
+      var d=el('div'); d.appendChild(el('label','',esc(p.label||p.k)));
+      var s=el('select','isian'); s.dataset.k=p.k;
+      s.innerHTML='<option value="">— tidak ada —</option>'+kolom.map(function(k){return '<option'+(tebak(kolom,p.c)===k?' selected':'')+'>'+esc(k)+'</option>'}).join('');
+      d.appendChild(s); g.appendChild(d);
+    });
+    var dp=el('div'); dp.appendChild(el('label','','Proyek untuk semua baris ini'));
+    var sp=el('select','isian'); sp.id='csvProyek';
+    sp.innerHTML=proyekAktif().map(function(p){return '<option>'+esc(p.Kode)+'</option>'}).join('');
+    dp.appendChild(sp); g.appendChild(dp);
+    hasil.appendChild(g);
+
+    var bt=el('button','tombol emas','Proses & simpan absensi');
+    bt.style.marginTop='14px';
+    bt.onclick=function(){
+      var m={}; g.querySelectorAll('select[data-k]').forEach(function(s){ m[s.dataset.k]=s.value; });
+      if(!m.Tanggal||!(m.Nama||m.IDFinger)){ roti('Kolom Tanggal dan Nama/ID wajib dicocokkan.',true); return; }
+      var proyek=$('#csvProyek').value;
+      var kar={}; (S.data.Karyawan||[]).forEach(function(k){ if(k.IDFinger) kar[String(k.IDFinger)]=k.Nama; });
+      var baris=isi.map(function(r){
+        var nama=m.Nama?r[m.Nama]:'';
+        var idf=m.IDFinger?r[m.IDFinger]:'';
+        if(!nama && idf && kar[idf]) nama=kar[idf];
+        var t=r[m.Tanggal];
+        var d=new Date(t); var tg2=isNaN(d)?String(t).slice(0,10):tgl(d);
+        var masuk=m.JamMasuk?r[m.JamMasuk]:'', pulang=m.JamPulang?r[m.JamPulang]:'';
+        return {Tanggal:tg2,Nama:nama||idf,IDFinger:idf,Proyek:proyek,
+          Status:masuk?'Hadir':'Tidak Finger',JamMasuk:masuk,JamPulang:pulang,Sumber:'Fingerprint CSV'};
+      }).filter(function(x){return x.Tanggal&&x.Nama});
+      if(!baris.length){ roti('Tidak ada baris yang bisa diproses.',true); return; }
+      if(!confirm('Simpan '+baris.length+' baris absensi untuk proyek '+proyek+'?')) return;
+      bt.disabled=true; bt.textContent='Menyimpan…';
+      var potong=[],i=0;
+      while(i<baris.length){ potong.push(baris.slice(i,i+200)); i+=200; }
+      (function berikutnya(n){
+        if(n>=potong.length){ bt.disabled=false; bt.textContent='Proses & simpan absensi'; roti(baris.length+' baris absensi tersimpan.'); muat(); return; }
+        api('simpan',{tab:'Absensi',baris:potong[n]}).then(function(){ berikutnya(n+1) })
+          .catch(function(){ bt.disabled=false; bt.textContent='Proses & simpan absensi'; roti('Gagal menyimpan di bagian ke-'+(n+1),true); });
+      })(0);
+    };
+    hasil.appendChild(bt);
+  }
+  return w;
+}
+
+/* ---------- 6. MATERIAL & STOK ---------- */
+function halMaterial(w){
+  w.appendChild(kepalaHal('Material & Stok','Ringkasan dari BMKP Stock Control Material'));
+  var sal=saldoStok(), M=S.data.StokMaster||[], G=S.data.Gudang||[];
+  var tipis=M.filter(function(m){
+    var min=angkaDari(m.StokMin)||Number(S.konfig.AMBANG_STOK_MIN||0);
+    return min>0 && saldoTotal(m.Kode)<min;
+  });
+  var pakaiBulan=(S.data.StokPakai||[]).filter(function(r){return String(r.Tanggal).slice(0,7)===hariIni().slice(0,7)});
+
+  var kb=el('div','kpi-baris');
+  kb.innerHTML=
+    '<div class="kpi b"><span>Jenis material</span><b>'+M.length+'</b><small>di '+G.length+' gudang</small></div>'+
+    '<div class="kpi a"><span>Stok menipis</span><b>'+tipis.length+'</b><small>di bawah stok minimum</small></div>'+
+    '<div class="kpi c"><span>Pemakaian bulan ini</span><b>'+pakaiBulan.length+'</b><small>transaksi tercatat</small></div>'+
+    '<div class="kpi d"><span>DO berjalan</span><b>'+(S.data.StokDO||[]).length+'</b><small>pengiriman ke proyek</small></div>';
+  w.appendChild(kb);
+
+  var b=blok('Saldo stok per gudang','',[{teks:'Buka aplikasi Stock Control',gaya:'emas',aksi:function(){window.open('stock.html','_blank')}}]);
+  var baris=M.map(function(m){
+    var o={kode:m.Kode,nama:m.Nama,satuan:m.Satuan,min:angkaDari(m.StokMin),total:saldoTotal(m.Kode),per:{}};
+    G.forEach(function(g){ o.per[g.Kode]=sal[m.Kode+'||'+g.Kode]||0; });
+    return o;
+  });
+  var kolom=[{judul:'Material',isi:function(r){return '<b>'+esc(r.nama)+'</b><br><span style="font-size:11px;color:var(--abu)">'+esc(r.kode)+'</span>'}}];
+  G.forEach(function(g){ kolom.push({judul:g.Kode,kanan:1,isi:function(r){return '<span class="mono">'+angka(r.per[g.Kode])+'</span>'}}); });
+  kolom.push({judul:'Total',kanan:1,isi:function(r){return '<span class="mono"><b>'+angka(r.total)+'</b></span> '+esc(r.satuan||'')}});
+  kolom.push({judul:'Status',isi:function(r){
+    if(!r.min) return '<span class="tanda abu">belum ada min</span>';
+    return r.total<r.min?'<span class="tanda merah">menipis</span>':'<span class="tanda hijau">aman</span>'}});
+  b._isi.appendChild(tabel(kolom,baris,'Master material belum diisi. Buka aplikasi Stock Control untuk mengisinya.'));
+  w.appendChild(b);
+
+  var b2=blok('Pemakaian material terakhir','');
+  b2._isi.appendChild(tabel([
+    {judul:'Tanggal',isi:function(r){return tglIndo(r.Tanggal)}},
+    {judul:'Material',isi:function(r){var m=M.filter(function(x){return x.Kode===r.KodeMaterial})[0]; return esc(m?m.Nama:r.KodeMaterial)}},
+    {judul:'Qty',kanan:1,isi:function(r){return '<span class="mono">'+angka(r.Qty)+'</span>'}},
+    {judul:'Gudang',isi:function(r){return esc(r.Gudang)}},
+    {judul:'Proyek',isi:function(r){return esc(r.Proyek)}},
+    {judul:'Keperluan',isi:function(r){return esc(r.Keperluan)}},
+    {judul:'Dicatat',isi:function(r){return esc(r.Input)}}
+  ],(S.data.StokPakai||[]).slice(-40).reverse(),'Belum ada pemakaian tercatat.'));
+  w.appendChild(b2);
+}
+
+/* ---------- 7. TRACKING TAGIHAN ---------- */
+function halTagihan(w){
+  w.appendChild(kepalaHal('Tracking Tagihan','Ditarik langsung dari sheet Tracking Tagihan — Unit Rate Isolasi BMKP 2026'));
+  var sumber=S.luar.tagihan||{};
+  if(!sumber.ok){
+    var bx=blok('Belum tersambung','');
+    bx._isi.innerHTML='<div class="alarm tinggi"><span class="ikon">●</span><div><b>Sheet Tracking Tagihan belum terbaca</b><p>'+esc(sumber.pesan||'ID sheet belum diisi.')+' Isi lewat menu Pengaturan &rsaquo; Sumber data, lalu tekan “Uji tarik data”.</p></div></div>';
+    w.appendChild(bx); return;
+  }
+  var T=rekapTagihan();
+  var batas=Number(S.konfig.AMBANG_TAGIHAN_HARI||37);
+  var lunas=T.filter(function(x){return x.lunas}), jalan=T.filter(function(x){return !x.lunas});
+  var lambat=jalan.filter(function(x){return x.hari>batas});
+  var total=T.reduce(function(a,b){return a+b.nilai},0);
+  var out=jalan.reduce(function(a,b){return a+b.nilai},0);
+
+  var kb=el('div','kpi-baris');
+  kb.innerHTML=
+    '<div class="kpi e"><span>Total tagihan</span><b style="font-size:17px">'+rupiah(total)+'</b><small>'+T.length+' tagihan</small></div>'+
+    '<div class="kpi c"><span>Sudah cair</span><b style="font-size:17px">'+rupiah(total-out)+'</b><small>'+lunas.length+' tagihan lunas</small></div>'+
+    '<div class="kpi a"><span>Outstanding</span><b style="font-size:17px">'+rupiah(out)+'</b><small>'+jalan.length+' masih berjalan</small></div>'+
+    '<div class="kpi d"><span>Lewat target</span><b>'+lambat.length+'</b><small>lebih dari '+batas+' hari</small></div>';
+  w.appendChild(kb);
+
+  var perArea={};
+  T.forEach(function(t){ var a=t.area||'—'; perArea[a]=perArea[a]||{area:a,jml:0,nilai:0,out:0,lambat:0};
+    perArea[a].jml++; perArea[a].nilai+=t.nilai; if(!t.lunas){perArea[a].out+=t.nilai; if(t.hari>batas)perArea[a].lambat++;} });
+  var b=blok('Rekap per area','',[{teks:'Cetak / PDF',aksi:function(){window.print()}},
+    {teks:'Buka Tracking Tagihan',gaya:'emas',aksi:function(){
+      var u=S.konfig.URL_TRACKING_TAGIHAN;
+      if(u) window.open(u,'_blank'); else roti('Alamat aplikasi Tracking Tagihan belum diisi di Pengaturan.',true);
+    }}]);
+  b._isi.appendChild(tabel([
+    {judul:'Area',isi:function(r){return '<b>'+esc(r.area)+'</b>'}},
+    {judul:'Jumlah tagihan',kanan:1,isi:function(r){return r.jml}},
+    {judul:'Nilai',kanan:1,isi:function(r){return '<span class="mono">'+rupiah(r.nilai)+'</span>'}},
+    {judul:'Outstanding',kanan:1,isi:function(r){return '<span class="mono">'+rupiah(r.out)+'</span>'}},
+    {judul:'Lewat target',kanan:1,isi:function(r){return r.lambat?'<span class="tanda merah">'+r.lambat+'</span>':'0'}}
+  ],Object.keys(perArea).sort().map(function(k){return perArea[k]}),'Sheet terbaca tapi belum ada baris tagihan.'));
+  w.appendChild(b);
+
+  var b2=blok('Daftar tagihan','Diurut dari yang paling lama berjalan');
+  b2._isi.appendChild(tabel([
+    {judul:'Tagihan',isi:function(r){return '<b>'+esc(r.nama)+'</b>'}},
+    {judul:'Area',isi:function(r){return esc(r.area)}},
+    {judul:'Nilai',kanan:1,isi:function(r){return '<span class="mono">'+(r.nilai?rupiah(r.nilai):'—')+'</span>'}},
+    {judul:'Posisi sekarang',isi:function(r){return esc(r.posisi)}},
+    {judul:'Umur',kanan:1,isi:function(r){
+      if(!r.hari) return '—';
+      return '<span class="tanda '+(r.lunas?'hijau':r.hari>batas?'merah':r.hari>batas*0.75?'kuning':'biru')+'">'+angka(r.hari)+' hari</span>'}},
+    {judul:'Status',isi:function(r){return '<span class="tanda '+(r.lunas?'hijau':'abu')+'">'+esc(r.status)+'</span>'}}
+  ],T.slice().sort(function(a,b3){return (b3.lunas?-1:b3.hari)-(a.lunas?-1:a.hari)}),'Belum ada tagihan.'));
+  w.appendChild(b2);
+
+  w.appendChild(el('p','catatan','Project Control hanya membaca. Semua perubahan tanggal dan tahapan tetap dilakukan di aplikasi Tracking Tagihan.'));
+}
+
+/* ---------- 8. COST & UNTUNG RUGI ---------- */
+function halBiaya(w){
+  w.appendChild(kepalaHal('Cost & Untung Rugi','Revenue dari tagihan · biaya dari input Finance'));
+  if(['kendali','bos','finance'].indexOf(S.peran)<0){
+    w.appendChild(el('div','blok','<div class="kosong"><b>Anda tidak memiliki hak akses ke menu ini.</b>Memerlukan persetujuan Project Control / Management.</div>')); return;
+  }
+  var B=S.data.Biaya||[], T=rekapTagihan();
+  var bulan=S.tabAktif.bulanBiaya||hariIni().slice(0,7);
+  var perProyek={};
+  proyekAktif().forEach(function(p){
+    var k=String(p.Kode).toUpperCase();
+    perProyek[k]={kode:k,nama:p.Nama,revenue:0,labor:0,material:0,alat:0,operasional:0,lain:0};
+  });
+  T.forEach(function(t){
+    Object.keys(perProyek).forEach(function(k){ if(t.area.indexOf(k)>=0) perProyek[k].revenue+=t.nilai; });
+  });
+  B.filter(function(r){return String(r.Tanggal).slice(0,7)===bulan||S.tabAktif.semuaBiaya}).forEach(function(r){
+    var k=String(r.Proyek||'').toUpperCase(); if(!perProyek[k])return;
+    var kat=String(r.Kategori||'').toLowerCase(), n=angkaDari(r.Nilai);
+    if(/upah|labor|gaji|tenaga/.test(kat)) perProyek[k].labor+=n;
+    else if(/material|bahan/.test(kat)) perProyek[k].material+=n;
+    else if(/alat|equipment|sewa alat/.test(kat)) perProyek[k].alat+=n;
+    else if(/operasional|bbm|mobil|transport/.test(kat)) perProyek[k].operasional+=n;
+    else perProyek[k].lain+=n;
+  });
+  var daftar=Object.keys(perProyek).map(function(k){
+    var o=perProyek[k]; o.biaya=o.labor+o.material+o.alat+o.operasional+o.lain; o.laba=o.revenue-o.biaya;
+    o.margin=o.revenue?Math.round(o.laba/o.revenue*100):null; return o;
+  });
+
+  var b=blok('Revenue vs biaya','Revenue = nilai tagihan yang terbaca dari Tracking Tagihan',[
+    {teks:S.tabAktif.semuaBiaya?'Lihat per bulan':'Lihat seluruh biaya',aksi:function(){S.tabAktif.semuaBiaya=!S.tabAktif.semuaBiaya;gambar()}},
+    {teks:'Cetak / PDF',aksi:function(){window.print()}}]);
+  b._isi.appendChild(tabel([
+    {judul:'Proyek',isi:function(r){return '<b>'+esc(r.kode)+'</b>'}},
+    {judul:'Revenue',kanan:1,isi:function(r){return '<span class="mono">'+rupiah(r.revenue)+'</span>'}},
+    {judul:'Upah',kanan:1,isi:function(r){return '<span class="mono">'+rupiah(r.labor)+'</span>'}},
+    {judul:'Material',kanan:1,isi:function(r){return '<span class="mono">'+rupiah(r.material)+'</span>'}},
+    {judul:'Alat',kanan:1,isi:function(r){return '<span class="mono">'+rupiah(r.alat)+'</span>'}},
+    {judul:'Operasional',kanan:1,isi:function(r){return '<span class="mono">'+rupiah(r.operasional)+'</span>'}},
+    {judul:'Total biaya',kanan:1,isi:function(r){return '<span class="mono">'+rupiah(r.biaya)+'</span>'}},
+    {judul:'Laba / rugi',kanan:1,isi:function(r){
+      return '<span class="mono '+'"><b style="color:'+(r.laba>=0?'var(--hijau)':'var(--merah-alarm)')+'">'+rupiah(r.laba)+'</b></span>'}},
+    {judul:'Margin',kanan:1,isi:function(r){return r.margin===null?'—':'<span class="tanda '+(r.margin>=20?'hijau':r.margin>=10?'kuning':'merah')+'">'+r.margin+'%</span>'}}
+  ],daftar,'Belum ada data biaya.'));
+  b._isi.appendChild(el('p','catatan','Angka revenue mengikuti nilai tagihan yang sudah terbit. Pekerjaan yang sudah selesai tapi belum ditagihkan belum masuk di sini.'));
+  w.appendChild(b);
+
+  var b2=blok('Catat biaya','Upah, material, sewa alat, BBM, operasional lain');
+  b2._isi.appendChild(formulir('Biaya',[
+    {k:'Tanggal',t:'date',v:hariIni()},
+    {k:'Proyek',t:'pilih',o:proyekAktif().map(function(p){return p.Kode})},
+    {k:'Kategori',t:'pilih',o:['Upah tenaga kerja','Material','Sewa alat','Operasional (BBM/mobil)','Lainnya']},
+    {k:'Uraian'},{k:'Nilai',label:'Nilai (Rp)',t:'number'}
+  ]));
+  b2._isi.appendChild(el('div','pemisah'));
+  b2._isi.appendChild(tabel([
+    {judul:'Tanggal',isi:function(r){return tglIndo(r.Tanggal)}},
+    {judul:'Proyek',isi:function(r){return esc(r.Proyek)}},
+    {judul:'Kategori',isi:function(r){return esc(r.Kategori)}},
+    {judul:'Uraian',isi:function(r){return esc(r.Uraian)}},
+    {judul:'Nilai',kanan:1,isi:function(r){return '<span class="mono">'+rupiah(r.Nilai)+'</span>'}},
+    {judul:'Dicatat',isi:function(r){return esc(r.Input)}}
+  ],B.slice(-40).reverse(),'Belum ada biaya tercatat.'));
+  w.appendChild(b2);
+
+  if(S.peran==='kendali'){
+    var b3=blok('Nilai kontrak & budget','Dipakai untuk alarm “budget menipis”');
+    b3._isi.appendChild(tabel([
+      {judul:'Proyek',isi:function(r){return '<b>'+esc(r.KodeProyek)+'</b>'}},
+      {judul:'Nilai kontrak',kanan:1,isi:function(r){return '<span class="mono">'+rupiah(r.NilaiKontrak)+'</span>'}},
+      {judul:'Terpakai',kanan:1,isi:function(r){return '<span class="mono">'+rupiah(r.NilaiTerpakai)+'</span>'}},
+      {judul:'Sisa',kanan:1,isi:function(r){return '<span class="mono">'+rupiah(angkaDari(r.NilaiKontrak)-angkaDari(r.NilaiTerpakai))+'</span>'}},
+      {judul:'Sisa %',kanan:1,isi:function(r){
+        var n=angkaDari(r.NilaiKontrak); if(!n)return '—';
+        var s=Math.round((n-angkaDari(r.NilaiTerpakai))/n*100);
+        return '<span class="tanda '+(s<15?'merah':s<30?'kuning':'hijau')+'">'+s+'%</span>'}},
+      {judul:'Diperbarui',isi:function(r){return tglIndo(r.TanggalUpdate)}}
+    ],S.data.Kontrak||[],'Nilai kontrak belum diisi.'));
+    b3._isi.appendChild(el('div','pemisah'));
+    b3._isi.appendChild(formulir('Kontrak',[
+      {k:'KodeProyek',label:'Proyek',t:'pilih',o:proyekAktif().map(function(p){return p.Kode})},
+      {k:'NilaiKontrak',label:'Nilai kontrak (Rp)',t:'number'},
+      {k:'NilaiTerpakai',label:'Sudah terpakai (Rp)',t:'number'},
+      {k:'TanggalUpdate',label:'Tanggal update',t:'date',v:hariIni()},
+      {k:'Catatan'}
+    ]));
+    w.appendChild(b3);
+  }
+}
+
+/* ---------- 9. KENDALA ---------- */
+function halKendala(w){
+  w.appendChild(kepalaHal('Kendala','Penyebab pekerjaan tidak tercapai — jadi bahan meeting dengan Direksi'));
+  var K=(S.data.Kendala||[]).slice().reverse();
+  var buka=K.filter(function(x){return !/SELESAI|CLOSE/i.test(String(x.Status||''))});
+  var perKat={};
+  K.filter(function(x){return String(x.Tanggal)>=mundur(30)}).forEach(function(x){
+    var k=x.Kategori||'Lainnya'; perKat[k]=(perKat[k]||0)+1;
+  });
+  var urut=Object.keys(perKat).sort(function(a,b){return perKat[b]-perKat[a]});
+
+  var kb=el('div','kpi-baris');
+  kb.innerHTML=
+    '<div class="kpi a"><span>Kendala terbuka</span><b>'+buka.length+'</b><small>belum tuntas</small></div>'+
+    '<div class="kpi b"><span>30 hari terakhir</span><b>'+Object.keys(perKat).reduce(function(a,k){return a+perKat[k]},0)+'</b><small>kejadian tercatat</small></div>'+
+    '<div class="kpi d"><span>Penyebab terbanyak</span><b style="font-size:16px">'+(urut[0]||'—')+'</b><small>'+(urut[0]?perKat[urut[0]]+' kali':'belum ada data')+'</small></div>';
+  w.appendChild(kb);
+
+  var b=blok('Daftar kendala','');
+  b._isi.appendChild(tabel([
+    {judul:'Tanggal',isi:function(r){return tglIndo(r.Tanggal)}},
+    {judul:'Proyek',isi:function(r){return '<b>'+esc(r.Proyek)+'</b>'}},
+    {judul:'Kategori',isi:function(r){return '<span class="tanda biru">'+esc(r.Kategori)+'</span>'}},
+    {judul:'Uraian',isi:function(r){return esc(r.Uraian)}},
+    {judul:'Dampak',isi:function(r){return esc(r.Dampak)}},
+    {judul:'PIC',isi:function(r){return esc(r.PIC)}},
+    {judul:'Status',isi:function(r){
+      var s=String(r.Status||'Terbuka');
+      return '<span class="tanda '+(/SELESAI|CLOSE/i.test(s)?'hijau':'merah')+'">'+esc(s)+'</span>'}}
+  ],K.slice(0,120),'Belum ada kendala tercatat.'));
+  w.appendChild(b);
+
+  var b2=blok('Catat kendala','');
+  b2._isi.appendChild(formulir('Kendala',[
+    {k:'Tanggal',t:'date',v:hariIni()},
+    {k:'Proyek',t:'pilih',o:proyekAktif().map(function(p){return p.Kode})},
+    {k:'Kategori',t:'pilih',o:['Hujan / cuaca','Permit belum turun','Emergency kilang','Tenaga kurang','Absensi tinggi','Material kurang','Alat bermasalah','Request belum turun','Kendala user','ID badge / akses','Produktivitas rendah','Lainnya']},
+    {k:'Uraian',t:'area'},
+    {k:'Dampak',t:'pilih',o:['Ringan','Sedang','Berat — pekerjaan berhenti']},
+    {k:'PIC'},
+    {k:'Status',t:'pilih',o:['Terbuka','Sedang ditangani','Selesai']},
+    {k:'TanggalSelesai',label:'Tanggal selesai',t:'date'}
+  ]));
+  w.appendChild(b2);
+}
+
+/* ---------- 10. KPI PIC ---------- */
+function halKpi(w){
+  w.appendChild(kepalaHal('KPI PIC','Dinilai dari kelengkapan dan ketepatan waktu input, bukan dari perkiraan'));
+  var jamBatas=Number(S.konfig.JAM_BATAS_INPUT||20);
+  var sejak=mundur(30);
+  var tugas={
+    Fatah:{tab:'Progres',nama:'Daily Progress + upload fingerprint'},
+    Esti:{tab:'LTSA_PM',nama:'LTSA'},
+    Trisno:{tab:'Crane',nama:'Crane'},
+    Rian:{tab:'StokPakai',nama:'Stock & pemakaian material'},
+    Bunga:{tab:'StokMasuk',nama:'Purchasing / material masuk'},
+    Ati:{tab:'Biaya',nama:'Finance / payroll'},
+    Ariel:{tab:'Kendala',nama:'Project Control'}
+  };
+  var log=(S.data.LogAktivitas||[]).filter(function(l){return String(l.Waktu)>=sejak});
+  var daftar=(S.data.Pengguna||[]).map(function(u){
+    var nama=u.Nama;
+    var inputan=0,telat=0,hariAktif={};
+    ['Progres','Absensi','LTSA_PM','LTSA_Repair','Crane','Kendala','Biaya','StokMasuk','StokDO','StokPakai','StokOpname'].forEach(function(tab){
+      (S.data[tab]||[]).forEach(function(r){
+        if(String(r.Input||'').toLowerCase()!==String(nama).toLowerCase()) return;
+        var wkt=r.Waktu||r.Tanggal; if(String(wkt).slice(0,10)<sejak) return;
+        inputan++; hariAktif[String(wkt).slice(0,10)]=1;
+        var d=new Date(wkt);
+        if(!isNaN(d) && String(wkt).length>10 && d.getHours()>=jamBatas) telat++;
+      });
+    });
+    var masuk=log.filter(function(l){return String(l.Nama).toLowerCase()===String(nama).toLowerCase() && l.Aksi==='Masuk'}).length;
+    var t=tugas[nama]||{nama:String(u.Peran||'').toUpperCase()};
+    var hari=Object.keys(hariAktif).length;
+    var nilai = hari>=20?'HIJAU' : hari>=8?'KUNING':'MERAH';
+    if(telat>inputan*0.4 && nilai==='HIJAU') nilai='KUNING';
+    return {nama:nama,peran:u.Peran,tugas:t.nama,inputan:inputan,hari:hari,telat:telat,masuk:masuk,
+      terakhir:u.TerakhirMasuk,nilai:nilai,aktif:u.Aktif};
+  }).sort(function(a,b){return b.inputan-a.inputan});
+
+  var b=blok('Disiplin input 30 hari terakhir','Batas input harian pukul '+jamBatas+':00',[{teks:'Cetak / PDF',aksi:function(){window.print()}}]);
+  b._isi.appendChild(tabel([
+    {judul:'Nama',isi:function(r){return '<b>'+esc(r.nama)+'</b><br><span style="font-size:11px;color:var(--abu)">'+esc(r.tugas||'')+'</span>'}},
+    {judul:'Peran',isi:function(r){return '<span class="tanda abu">'+esc(r.peran)+'</span>'}},
+    {judul:'Jumlah input',kanan:1,isi:function(r){return '<span class="mono">'+r.inputan+'</span>'}},
+    {judul:'Hari aktif',kanan:1,isi:function(r){return '<span class="mono">'+r.hari+'</span>'}},
+    {judul:'Input lewat jam batas',kanan:1,isi:function(r){return r.telat?'<span class="tanda kuning">'+r.telat+'</span>':'0'}},
+    {judul:'Kali masuk',kanan:1,isi:function(r){return r.masuk}},
+    {judul:'Terakhir masuk',isi:function(r){return r.terakhir?tglIndo(r.terakhir):'belum pernah'}},
+    {judul:'KPI',isi:function(r){
+      return '<span class="tanda '+(r.nilai==='HIJAU'?'hijau':r.nilai==='KUNING'?'kuning':'merah')+'">'+r.nilai+'</span>'}}
+  ],daftar,'Belum ada pengguna terdaftar.'));
+  b._isi.appendChild(el('p','catatan','HIJAU = disiplin (aktif ≥20 hari) · KUNING = perlu perhatian · MERAH = jarang atau tidak menginput. Semua angka dapat ditelusuri ke kolom “Input” di setiap tab database.'));
+  w.appendChild(b);
+
+  var b2=blok('Log aktivitas terakhir','Siapa membuka dan menginput apa');
+  b2._isi.appendChild(tabel([
+    {judul:'Waktu',isi:function(r){return new Date(r.Waktu).toLocaleString('id-ID')}},
+    {judul:'Nama',isi:function(r){return '<b>'+esc(r.Nama)+'</b>'}},
+    {judul:'Peran',isi:function(r){return esc(r.Peran)}},
+    {judul:'Aksi',isi:function(r){return esc(r.Aksi)}},
+    {judul:'Keterangan',isi:function(r){return esc(r.Keterangan)}}
+  ],(S.data.LogAktivitas||[]).slice(-80).reverse(),'Belum ada aktivitas tercatat.'));
+  w.appendChild(b2);
+}
+
+/* ---------- 11. PENGATURAN ---------- */
+function halAtur(w){
+  w.appendChild(kepalaHal('Pengaturan','Hanya Project Control yang dapat mengubah halaman ini'));
+
+  /* Sumber data */
+  var b=blok('Sumber data','ID Google Sheet aplikasi lain yang dibaca (hanya baca, tidak ditulis)');
+  var g=el('div','formulir');
+  [['SHEET_INSULASI_ID','ID sheet DATABASE INSULATION BMKP'],
+   ['TAB_INSULASI_PROGRES','Nama tab progres'],
+   ['TAB_INSULASI_ABSENSI','Nama tab absensi'],
+   ['SHEET_TAGIHAN_ID','ID sheet DATABASE TRACKING TAGIHAN BMKP'],
+   ['TAB_TAGIHAN','Nama tab tagihan'],
+   ['TAB_TAGIHAN_TANGGAL','Nama tab tanggal tahapan'],
+   ['URL_TRACKING_TAGIHAN','Alamat aplikasi Tracking Tagihan (untuk tombol buka)']
+  ].forEach(function(x){
+    var d=el('div'); d.appendChild(el('label','',x[1]));
+    var i=el('input','isian'); i.dataset.k=x[0]; i.value=S.konfig[x[0]]||''; d.appendChild(i); g.appendChild(d);
+  });
+  b._isi.appendChild(g);
+  var bt=el('div','baris-tombol');
+  var s1=el('button','tombol emas','Simpan sumber data');
+  s1.onclick=function(){
+    var isi=[]; g.querySelectorAll('[data-k]').forEach(function(i){
+      var v=i.value.trim();
+      if(i.dataset.k.indexOf('SHEET_')===0){ var m=v.match(/\/d\/([a-zA-Z0-9-_]+)/); if(m)v=m[1]; }
+      isi.push({kunci:i.dataset.k,nilai:v});
+    });
+    s1.disabled=true;
+    api('konfig',{isi:isi}).then(function(j){ s1.disabled=false;
+      if(j.ok){ roti('Tersimpan.'); muat(); } else roti(j.pesan||'Gagal',true); });
+  };
+  bt.appendChild(s1);
+  ['Insulasi progres','Insulasi absensi','Tagihan','Tagihan tanggal'].forEach(function(nm,idx){
+    var t=el('button','tombol kecil garis','Uji: '+nm);
+    t.onclick=function(){
+      var jenis=idx<2?'insulasi':'tagihan';
+      var tab=[S.konfig.TAB_INSULASI_PROGRES||'Progres',S.konfig.TAB_INSULASI_ABSENSI||'Absensi',
+               S.konfig.TAB_TAGIHAN||'Tagihan',S.konfig.TAB_TAGIHAN_TANGGAL||'Tanggal'][idx];
+      t.disabled=true; t.textContent='Menguji…';
+      api('ujiLuar',{jenis:jenis,tab:tab}).then(function(j){
+        t.disabled=false; t.textContent='Uji: '+nm;
+        var kotak=$('#hasilUji');
+        kotak.innerHTML=j.ok
+          ? '<div class="alarm aman"><span class="ikon">✔</span><div><b>'+esc(j.nama||'Terbaca')+' &rsaquo; '+esc(tab)+'</b><p>Kolom terbaca: '+j.kolom.map(esc).join(' · ')+'</p></div></div>'
+          : '<div class="alarm tinggi"><span class="ikon">●</span><div><b>Gagal membaca</b><p>'+esc(j.pesan||'')+'</p></div></div>';
+      });
+    };
+    bt.appendChild(t);
+  });
+  b._isi.appendChild(bt);
+  b._isi.appendChild(el('div','','<div id="hasilUji" style="margin-top:12px"></div>'));
+  b._isi.appendChild(el('p','catatan','Syarat: kedua sheet berada di akun Google yang sama dengan sheet DATABASE PROJECT CONTROL BMKP, atau minimal dibagikan ke akun itu sebagai Editor.'));
+  w.appendChild(b);
+
+  /* Ambang alarm */
+  var b2=blok('Ambang alarm','Angka inilah yang menentukan kapan lampu merah menyala');
+  var g2=el('div','formulir');
+  [['AMBANG_ACHIEVEMENT','Capaian minimum (%)'],
+   ['AMBANG_BUDGET_SISA','Sisa budget minimum (%)'],
+   ['AMBANG_ABSEN','Kehadiran minimum (%)'],
+   ['AMBANG_TAGIHAN_HARI','Umur tagihan maksimum (hari)'],
+   ['AMBANG_STOK_MIN','Stok minimum bawaan'],
+   ['JAM_BATAS_INPUT','Jam batas input harian (0–23)']
+  ].forEach(function(x){
+    var d=el('div'); d.appendChild(el('label','',x[1]));
+    var i=el('input','isian'); i.type='number'; i.dataset.k=x[0]; i.value=S.konfig[x[0]]||''; d.appendChild(i); g2.appendChild(d);
+  });
+  b2._isi.appendChild(g2);
+  var s2=el('button','tombol emas','Simpan ambang'); s2.style.marginTop='14px';
+  s2.onclick=function(){
+    var isi=[]; g2.querySelectorAll('[data-k]').forEach(function(i){ isi.push({kunci:i.dataset.k,nilai:i.value}); });
+    s2.disabled=true;
+    api('konfig',{isi:isi}).then(function(j){ s2.disabled=false; if(j.ok){roti('Tersimpan.');muat();} else roti(j.pesan,true); });
+  };
+  b2._isi.appendChild(s2);
+  w.appendChild(b2);
+
+  /* Proyek */
+  var b3=blok('Daftar proyek','Tambahkan proyek baru di sini — sistem otomatis mengikutinya');
+  b3._isi.appendChild(tabel([
+    {judul:'Kode',isi:function(r){return '<b>'+esc(r.Kode)+'</b>'}},
+    {judul:'Nama',isi:function(r){return esc(r.Nama)}},
+    {judul:'Jenis',isi:function(r){return '<span class="tanda biru">'+esc(r.Jenis)+'</span>'}},
+    {judul:'Periode',isi:function(r){return tglIndo(r.Mulai)+' – '+tglIndo(r.Selesai)}},
+    {judul:'PIC',isi:function(r){return esc(r.PIC)}},
+    {judul:'Status',isi:function(r){return '<span class="tanda '+(String(r.Status)==='Aktif'?'hijau':'abu')+'">'+esc(r.Status)+'</span>'}}
+  ],S.data.Proyek||[],'Belum ada proyek.'));
+  b3._isi.appendChild(el('div','pemisah'));
+  b3._isi.appendChild(formulir('Proyek',[
+    {k:'Kode'},{k:'Nama'},
+    {k:'Jenis',t:'pilih',o:['Insulation','Steam Trace','LTSA','Crane','Lainnya']},
+    {k:'Area'},{k:'Mulai',t:'date'},{k:'Selesai',t:'date'},
+    {k:'Status',t:'pilih',o:['Aktif','Persiapan','Selesai']},
+    {k:'PIC'},{k:'Pengawas'}
+  ]));
+  w.appendChild(b3);
+
+  /* Karyawan */
+  var b4=blok('Karyawan & tarif','ID fingerprint dipakai untuk mencocokkan CSV absensi');
+  b4._isi.appendChild(tabel([
+    {judul:'ID finger',isi:function(r){return '<span class="mono">'+esc(r.IDFinger)+'</span>'}},
+    {judul:'Nama',isi:function(r){return '<b>'+esc(r.Nama)+'</b>'}},
+    {judul:'Jabatan',isi:function(r){return esc(r.Jabatan)}},
+    {judul:'Proyek',isi:function(r){return esc(r.Proyek)}},
+    {judul:'Jenis',isi:function(r){return '<span class="tanda abu">'+esc(r.Jenis)+'</span>'}},
+    {judul:'Tarif harian',kanan:1,isi:function(r){return '<span class="mono">'+rupiah(r.TarifHarian)+'</span>'}},
+    {judul:'Uang makan',kanan:1,isi:function(r){return '<span class="mono">'+rupiah(r.UangMakan)+'</span>'}}
+  ],(S.data.Karyawan||[]).slice(0,200),'Daftar karyawan belum diisi.'));
+  b4._isi.appendChild(el('div','pemisah'));
+  b4._isi.appendChild(formulir('Karyawan',[
+    {k:'IDFinger',label:'ID fingerprint'},{k:'Nama'},{k:'Jabatan'},
+    {k:'Proyek',t:'pilih',o:proyekAktif().map(function(p){return p.Kode})},
+    {k:'Jenis',t:'pilih',o:['Karyawan BMKP','Pekerja harian']},
+    {k:'TarifHarian',label:'Tarif harian (Rp)',t:'number'},
+    {k:'UangMakan',label:'Uang makan (Rp)',t:'number'},
+    {k:'Aktif',t:'pilih',o:['Ya','Tidak']}
+  ]));
+  w.appendChild(b4);
+
+  /* Pengguna */
+  var b5=blok('Pengguna & PIN','Nama harus persis sama dengan yang diketik saat masuk');
+  b5._isi.appendChild(tabel([
+    {judul:'Nama',isi:function(r){return '<b>'+esc(r.Nama)+'</b>'}},
+    {judul:'Peran',isi:function(r){return '<span class="tanda biru">'+esc(r.Peran)+'</span>'}},
+    {judul:'Aktif',isi:function(r){return '<span class="tanda '+(String(r.Aktif)==='Tidak'?'merah':'hijau')+'">'+esc(r.Aktif||'Ya')+'</span>'}},
+    {judul:'Terakhir masuk',isi:function(r){return r.TerakhirMasuk?new Date(r.TerakhirMasuk).toLocaleString('id-ID'):'belum pernah'}},
+    {judul:'',isi:function(r){return '<button class="tombol kecil garis" data-cabut="'+esc(r.ID)+'" data-nilai="'+(String(r.Aktif)==='Tidak'?'Ya':'Tidak')+'">'+(String(r.Aktif)==='Tidak'?'Aktifkan':'Cabut akses')+'</button>'}}
+  ],S.data.Pengguna||[],'Belum ada pengguna.'));
+  b5._isi.querySelectorAll('[data-cabut]').forEach(function(t){
+    t.onclick=function(){
+      api('pengguna',{sub:'aktif',id:t.dataset.cabut,nilai:t.dataset.nilai}).then(function(j){
+        if(j.ok){ roti('Diperbarui.'); muat(); } else roti(j.pesan,true);
+      });
+    };
+  });
+  b5._isi.appendChild(el('div','pemisah'));
+  var g5=el('div','formulir');
+  g5.innerHTML=
+    '<div><label>Nama</label><input class="isian" id="puNama"></div>'+
+    '<div><label>PIN baru</label><input class="isian" id="puPin"></div>'+
+    '<div><label>Peran</label><select class="isian" id="puPeran">'+
+      ['kendali','bos','finance','site','ltsa','crane','stock','pengawas','hse'].map(function(x){return '<option>'+x+'</option>'}).join('')+
+    '</select></div>';
+  b5._isi.appendChild(g5);
+  var s5=el('button','tombol emas','Simpan pengguna / atur ulang PIN'); s5.style.marginTop='14px';
+  s5.onclick=function(){
+    var n=$('#puNama').value.trim(), p=$('#puPin').value.trim(), r=$('#puPeran').value;
+    if(!n||p.length<4){ roti('Nama wajib dan PIN minimal 4 karakter.',true); return; }
+    s5.disabled=true;
+    api('pengguna',{sub:'simpan',target:n,pinBaru:p,peran:r}).then(function(j){
+      s5.disabled=false;
+      if(j.ok){ roti('Pengguna tersimpan.'); $('#puNama').value=''; $('#puPin').value=''; muat(); }
+      else roti(j.pesan,true);
+    });
+  };
+  b5._isi.appendChild(s5);
+  w.appendChild(b5);
+
+  /* Ganti PIN sendiri + alamat server */
+  var b6=blok('Akun & server','');
+  b6._isi.innerHTML=
+    '<div class="formulir">'+
+      '<div><label>PIN lama</label><input class="isian" type="password" id="pinLama"></div>'+
+      '<div><label>PIN baru</label><input class="isian" type="password" id="pinBaru"></div>'+
+    '</div>';
+  var s6=el('button','tombol garis','Ganti PIN saya'); s6.style.marginTop='12px';
+  s6.onclick=function(){
+    var a=$('#pinLama').value, b7=$('#pinBaru').value;
+    if(b7.length<4){ roti('PIN baru minimal 4 karakter.',true); return; }
+    api('gantiPin',{pinLama:a,pinBaru:b7}).then(function(j){
+      if(j.ok){ S.pin=b7; if(localStorage.getItem('PC_PIN')) localStorage.setItem('PC_PIN',btoa(b7)); roti('PIN diganti.'); }
+      else roti(j.pesan,true);
+    });
+  };
+  b6._isi.appendChild(s6);
+  b6._isi.appendChild(el('p','catatan','Alamat server saat ini: '+esc(S.url||'belum diatur')));
+  w.appendChild(b6);
+}
+
+/* ---------- mulai ---------- */
+pasangGerbang();
+if(S.url && localStorage.getItem('PC_NAMA') && localStorage.getItem('PC_PIN')){
+  setTimeout(masuk,150);
+}
+</script>
+</body>
+</html>
