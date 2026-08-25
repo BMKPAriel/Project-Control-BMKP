@@ -491,10 +491,35 @@ function rekapTagihan(){
     var status=String(ambil(r,['Status','Keterangan'])||'').toUpperCase();
     var posisi=ambil(r,['Posisi','PosisiSekarang','Tahap','Tahapan','Proses']);
     var hari=angkaDari(ambil(r,['TotalHari','Hari','Umur','Durasi']));
-    var lunas=/LUNAS|BAYAR|CAIR|SELESAI/.test(status);
+    var lunas=nilaiLunas(r,status);
     return {id:id,nama:nama||id,area:area||'—',nilai:nilai,status:status||(lunas?'LUNAS':'PROSES'),
       posisi:posisi||'—',hari:hari,lunas:lunas,pic:ambil(r,['PIC','Penanggung'])};
   }).filter(function(x){return x.nama&&x.nama!=='—'});
+}
+
+/* Menentukan sebuah tagihan benar-benar sudah cair.
+   Urutan penilaian:
+   1. Bila ada kolom tanggal/nilai pencairan dan terisi  -> LUNAS (paling dapat dipercaya)
+   2. Bila status mengandung kata penyangkal (Tunggu Bayar, Belum Cair, Proses Bayar, dll) -> BELUM
+   3. Baru sesudah itu kata Lunas/Cair/Dibayar/Selesai dibaca sebagai LUNAS
+   Catatan: aturan lama memakai /LUNAS|BAYAR|CAIR|SELESAI/ sehingga status
+   "TUNGGU BAYAR" ikut terbaca lunas — itu penyebab angka tidak cocok. */
+function nilaiLunas(r,status){
+  var st=String(status||'').toUpperCase().replace(/\s+/g,' ').trim();
+
+  /* 1. bukti pencairan */
+  var bukti=ambil(r,['TanggalCair','TglCair','TanggalBayar','TglBayar','TanggalPembayaran','TanggalLunas','NilaiCair','NilaiDibayar','JumlahDibayar']);
+  if(bukti!==undefined && bukti!==null && String(bukti).trim()!=='' && !/^0+$/.test(String(bukti).trim()))
+    return true;
+
+  if(!st) return false;
+
+  /* 2. kata penyangkal — apa pun kata sesudahnya, berarti BELUM cair */
+  if(/BELUM|TUNGGU|MENUNGGU|PROSES|SEDANG|AKAN|PENGAJUAN|DIAJUKAN|REVIEW|VERIFIKASI|TERTAHAN|HOLD|DRAFT|PENDING|OUTSTANDING|BERJALAN|SIAP/.test(st))
+    return false;
+
+  /* 3. barulah kata pelunasan dipercaya */
+  return /LUNAS|CAIR|SELESAI|DIBAYAR|TERBAYAR|SUDAH BAYAR|PAID|CLOSED|CLOSE/.test(st);
 }
 
 function saldoStok(){
