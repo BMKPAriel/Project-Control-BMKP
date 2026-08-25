@@ -45,6 +45,13 @@ label{display:block;font-size:12px;font-weight:600;color:var(--arang-2);margin:1
 .tombol.utama{background:linear-gradient(150deg,var(--merah),var(--merah-tua));width:100%;margin-top:18px;padding:13px;font-size:15px}
 .tombol.emas{background:var(--emas);color:#241C00}
 .tombol.garis{background:#fff;color:var(--arang);border:1px solid var(--garis)}
+.tombol.bahaya{background:#fff;color:var(--merah-alarm);border:1px solid #F2C4C7}
+.tombol.bahaya:hover{background:var(--merah-alarm);color:#fff}
+.aksi-baris{display:flex;gap:6px;justify-content:flex-end;white-space:nowrap}
+.tanda-ubah{background:#FFF8E1;border:1px solid #F0D98A;border-radius:var(--r);
+  padding:10px 14px;margin-bottom:14px;font-size:13.5px;display:flex;
+  justify-content:space-between;align-items:center;gap:12px}
+.tanda-ubah b{color:#7A5A00}
 .tombol.kecil{padding:7px 11px;font-size:12.5px;border-radius:8px}
 .tombol:disabled{opacity:.5;cursor:not-allowed}
 .pesan{margin-top:12px;padding:10px 12px;border-radius:9px;font-size:13px;display:none}
@@ -490,11 +497,69 @@ function rekapTagihan(){
     var nilai=angkaDari(ambil(r,['Nilai','NilaiTagihan','Jumlah','Total','Rp']));
     var status=String(ambil(r,['Status','Keterangan'])||'').toUpperCase();
     var posisi=ambil(r,['Posisi','PosisiSekarang','Tahap','Tahapan','Proses']);
-    var hari=angkaDari(ambil(r,['TotalHari','Hari','Umur','Durasi']));
     var lunas=nilaiLunas(r,status);
+    var hari=umurTagihan(r,tglPer[id]||tglPer[String(nama||'').trim()]);
     return {id:id,nama:nama||id,area:area||'—',nilai:nilai,status:status||(lunas?'LUNAS':'PROSES'),
       posisi:posisi||'—',hari:hari,lunas:lunas,pic:ambil(r,['PIC','Penanggung'])};
   }).filter(function(x){return x.nama&&x.nama!=='—'});
+}
+
+/* ---- Umur tagihan, dalam HARI KERJA (Sabtu & Minggu tidak dihitung) ----
+   Aplikasi Tracking Tagihan menghitung umur sendiri, tidak selalu disimpan
+   sebagai angka di sheet. Karena itu Project Control mencoba tiga cara:
+   1. kolom angka umur bila ada
+   2. tanggal paling awal dari tab tanggal tahapan untuk ID tagihan itu
+   3. kolom tanggal di baris tagihan itu sendiri                          */
+function hariKerjaAntara(mulai,sampai){
+  var a=new Date(mulai), b=new Date(sampai);
+  if(isNaN(a)||isNaN(b)) return 0;
+  a.setHours(0,0,0,0); b.setHours(0,0,0,0);
+  if(b<a) return 0;
+  var n=0, d=new Date(a);
+  while(d<b){ d.setDate(d.getDate()+1); var h=d.getDay(); if(h!==0&&h!==6) n++; }
+  return n;
+}
+function tanggalDari(v){
+  if(v===undefined||v===null||String(v).trim()==='') return null;
+  if(v instanceof Date) return isNaN(v)?null:v;
+  var s=String(v).trim();
+  var m=s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);           /* 26/08/2026 */
+  if(m) return new Date(Number(m[3]),Number(m[2])-1,Number(m[1]));
+  m=s.match(/^(\d{4})[\-\/](\d{1,2})[\-\/](\d{1,2})/);               /* 2026-08-26 */
+  if(m) return new Date(Number(m[1]),Number(m[2])-1,Number(m[3]));
+  var d=new Date(s);
+  return isNaN(d)?null:d;
+}
+function umurTagihan(r,barisTanggal){
+  /* 1. kolom angka umur */
+  var langsung=angkaDari(ambil(r,['TotalHari','TotalHariKerja','HariKerja','Hari','Umur','UmurHari','Durasi','Lama','LamaHari','Age','Usia']));
+  if(langsung>0) return Math.round(langsung);
+
+  /* 2. tanggal paling awal dari tab tanggal tahapan */
+  var awal=null;
+  (barisTanggal||[]).forEach(function(t){
+    Object.keys(t).forEach(function(k){
+      if(!/TANGGAL|TGL|DATE/i.test(k)) return;
+      var d=tanggalDari(t[k]);
+      if(d && (!awal || d<awal)) awal=d;
+    });
+  });
+
+  /* 3. kolom tanggal pada baris tagihan */
+  if(!awal){
+    var kandidat=['TanggalTerbit','TglTerbit','TanggalMasuk','TglMasuk','TanggalTagihan','TglTagihan',
+                  'TanggalMulai','TglMulai','TanggalPengajuan','TanggalBAST','Tanggal','Tgl'];
+    for(var i=0;i<kandidat.length && !awal;i++) awal=tanggalDari(ambil(r,[kandidat[i]]));
+    if(!awal){
+      Object.keys(r).forEach(function(k){
+        if(awal || !/TANGGAL|TGL|DATE/i.test(k)) return;
+        if(/CAIR|BAYAR|LUNAS|TARGET|SELESAI/i.test(k)) return;   /* itu tanggal akhir, bukan awal */
+        awal=tanggalDari(r[k]);
+      });
+    }
+  }
+
+  return awal ? hariKerjaAntara(awal,new Date()) : 0;
 }
 
 /* Menentukan sebuah tagihan benar-benar sudah cair.
@@ -779,6 +844,15 @@ function halProgres(w){
 /* ---------- formulir generik ---------- */
 function formulir(tab,medan,sebelumSimpan,setelah){
   var f=el('div');
+  var idEdit=null;
+
+  /* pita kuning penanda sedang mengubah */
+  var pita=el('div','tanda-ubah'); pita.style.display='none';
+  var pitaTeks=el('span','','');
+  var pitaBatal=el('button','tombol kecil garis','Batal');
+  pita.appendChild(pitaTeks); pita.appendChild(pitaBatal);
+  f.appendChild(pita);
+
   var g=el('div','formulir');
   medan.forEach(function(m){
     var w=el('div');
@@ -791,6 +865,20 @@ function formulir(tab,medan,sebelumSimpan,setelah){
     w.appendChild(i); g.appendChild(w);
   });
   f.appendChild(g);
+
+  function kosongkan(){
+    g.querySelectorAll('[data-k]').forEach(function(i){
+      var m=medan.filter(function(x){return x.k===i.dataset.k})[0]||{};
+      i.value = (i.type==='date' && m.v) ? m.v : '';
+    });
+  }
+  function keluarModeUbah(){
+    idEdit=null; pita.style.display='none';
+    simpan.textContent='Simpan'; simpan.className='tombol utama';
+    kosongkan();
+  }
+  pitaBatal.onclick=keluarModeUbah;
+
   var bt=el('div','baris-tombol');
   var simpan=el('button','tombol utama',''); simpan.textContent='Simpan';
   simpan.style.width='auto'; simpan.style.marginTop='0';
@@ -799,17 +887,70 @@ function formulir(tab,medan,sebelumSimpan,setelah){
     g.querySelectorAll('[data-k]').forEach(function(i){ if(i.value!=='') o[i.dataset.k]=i.value; });
     if(!Object.keys(o).length){ roti('Isi dulu datanya.',true); return; }
     if(sebelumSimpan) o=sebelumSimpan(o);
-    simpan.disabled=true; simpan.textContent='Menyimpan…';
+    if(idEdit) o.ID=idEdit;                      /* <- inilah yang membuat server mengubah, bukan menambah */
+    var sedangUbah=!!idEdit;
+    simpan.disabled=true; simpan.textContent=sedangUbah?'Menyimpan perubahan…':'Menyimpan…';
     api('simpan',{tab:tab,baris:[o]}).then(function(j){
-      simpan.disabled=false; simpan.textContent='Simpan';
-      if(!j.ok){ roti(j.pesan||'Gagal menyimpan',true); return; }
-      roti('Tersimpan.');
-      g.querySelectorAll('[data-k]').forEach(function(i){ if(i.type!=='date') i.value=''; });
+      simpan.disabled=false;
+      if(!j.ok){ simpan.textContent=sedangUbah?'Simpan perubahan':'Simpan'; roti(j.pesan||'Gagal menyimpan',true); return; }
+      roti(sedangUbah?'Perubahan tersimpan.':'Tersimpan.');
+      keluarModeUbah();
       muat().then(function(){ if(setelah) setelah(); });
-    }).catch(function(){ simpan.disabled=false; simpan.textContent='Simpan'; roti('Gagal menghubungi server.',true); });
+    }).catch(function(){ simpan.disabled=false; roti('Gagal menghubungi server.',true); });
   };
   bt.appendChild(simpan); f.appendChild(bt);
+
+  /* dipanggil tombol "Ubah" di tabel */
+  f.muatUntukUbah=function(baris,keterangan){
+    idEdit=baris.ID;
+    g.querySelectorAll('[data-k]').forEach(function(i){
+      var v=baris[i.dataset.k];
+      i.value = (v===undefined||v===null) ? '' : String(v).slice(0, i.type==='date'?10:9999);
+    });
+    pitaTeks.innerHTML='<b>Sedang mengubah:</b> '+esc(keterangan||'data terpilih')+
+      ' — ubah isian di bawah lalu tekan Simpan perubahan.';
+    pita.style.display='flex';
+    simpan.textContent='Simpan perubahan';
+    simpan.className='tombol utama emas';
+    f.scrollIntoView({behavior:'smooth',block:'center'});
+  };
   return f;
+}
+
+/* ---- Kolom Aksi (Ubah / Hapus) untuk tabel ----
+   Hapus hanya untuk peran kendali. Peran lain melihat pesan agar menghubungi Ariel. */
+function kolomAksi(tab,form,labelBaris){
+  return {judul:'Aksi',kanan:1,isi:function(r){
+    if(!r.ID) return '<span style="color:var(--abu);font-size:11.5px">—</span>';
+    return '<span class="aksi-baris">'+
+      '<button class="tombol kecil garis" data-ubah="'+esc(r.ID)+'">Ubah</button>'+
+      '<button class="tombol kecil bahaya" data-hapus="'+esc(r.ID)+'">Hapus</button></span>';
+  }};
+}
+/* Pasang perilaku tombol Ubah/Hapus pada sebuah tabel yang sudah jadi */
+function pasangAksi(tabelEl,tab,data,form,labelBaris){
+  tabelEl.addEventListener('click',function(ev){
+    var tb=ev.target.closest('[data-ubah],[data-hapus]');
+    if(!tb) return;
+    var id=tb.dataset.ubah||tb.dataset.hapus;
+    var baris=data.filter(function(x){return String(x.ID)===String(id)})[0];
+    if(!baris){ roti('Baris tidak ditemukan. Coba tekan “Perbarui data”.',true); return; }
+    var nama=labelBaris?labelBaris(baris):'data ini';
+
+    if(tb.dataset.ubah){ form.muatUntukUbah(baris,nama); return; }
+
+    /* ---- Hapus ---- */
+    if(S.peran!=='kendali'){
+      roti('Hanya Ariel (Project Control) yang dapat menghapus data. Silakan hubungi Ariel untuk penghapusan.',true);
+      return;
+    }
+    if(!confirm('Hapus permanen?\n\n'+nama+'\n\nData yang dihapus tidak dapat dikembalikan.')) return;
+    tb.disabled=true; tb.textContent='…';
+    api('hapus',{tab:tab,id:id}).then(function(j){
+      if(!j.ok){ tb.disabled=false; tb.textContent='Hapus'; roti(j.pesan||'Gagal menghapus',true); return; }
+      roti('Data dihapus.'); muat();
+    }).catch(function(){ tb.disabled=false; tb.textContent='Hapus'; roti('Gagal menghubungi server.',true); });
+  });
 }
 
 /* ---------- 3. LTSA ---------- */
@@ -1259,14 +1400,23 @@ function halTagihan(w){
   var lambat=jalan.filter(function(x){return x.hari>batas});
   var total=T.reduce(function(a,b){return a+b.nilai},0);
   var out=jalan.reduce(function(a,b){return a+b.nilai},0);
+  var nilaiLambat=lambat.reduce(function(a,b){return a+b.nilai},0);
+  var picLambat={}; lambat.forEach(function(x){ if(x.pic) picLambat[x.pic]=1 });
 
   var kb=el('div','kpi-baris');
   kb.innerHTML=
     '<div class="kpi e"><span>Total tagihan</span><b style="font-size:17px">'+rupiah(total)+'</b><small>'+T.length+' tagihan</small></div>'+
     '<div class="kpi c"><span>Sudah cair</span><b style="font-size:17px">'+rupiah(total-out)+'</b><small>'+lunas.length+' tagihan lunas</small></div>'+
     '<div class="kpi a"><span>Outstanding</span><b style="font-size:17px">'+rupiah(out)+'</b><small>'+jalan.length+' masih berjalan</small></div>'+
-    '<div class="kpi d"><span>Lewat target</span><b>'+lambat.length+'</b><small>lebih dari '+batas+' hari</small></div>';
+    '<div class="kpi d"><span>Lewat target</span><b style="font-size:17px">'+rupiah(nilaiLambat)+'</b><small>'+lambat.length+' tagihan tertahan di PIC</small></div>';
   w.appendChild(kb);
+
+  if(!lambat.length && jalan.length && !jalan.some(function(x){return x.hari>0})){
+    w.appendChild(el('div','alarm sedang',
+      '<span class="ikon">▲</span><div><b>Umur tagihan belum terbaca</b>'+
+      '<p>Kolom umur/tanggal di sheet tidak dikenali, jadi hitungan “lewat target” belum bisa dijalankan. '+
+      'Buka Pengaturan &rsaquo; Sumber data lalu tekan <b>Uji: Tagihan</b> dan <b>Uji: Tagihan tanggal</b> untuk melihat nama kolom yang terbaca.</p></div>'));
+  }
 
   var perArea={};
   T.forEach(function(t){ var a=t.area||'—'; perArea[a]=perArea[a]||{area:a,jml:0,nilai:0,out:0,lambat:0};
@@ -1280,6 +1430,29 @@ function halTagihan(w){
     {judul:'Lewat target',kanan:1,isi:function(r){return r.lambat?'<span class="tanda merah">'+r.lambat+'</span>':'0'}}
   ],Object.keys(perArea).sort().map(function(k){return perArea[k]}),'Sheet terbaca tapi belum ada baris tagihan.'));
   w.appendChild(b);
+
+  var perPic={};
+  jalan.forEach(function(t){ var p=t.pic||'Belum ditentukan';
+    perPic[p]=perPic[p]||{pic:p,jml:0,nilai:0,lambat:0};
+    perPic[p].jml++; perPic[p].nilai+=t.nilai; if(t.hari>batas)perPic[p].lambat++; });
+  var dPic=Object.keys(perPic).map(function(k){return perPic[k]}).sort(function(a,b3){return b3.nilai-a.nilai});
+  if(dPic.length){
+    var maks=dPic[0].nilai||1;
+    var bP=blok('Nilai tagihan yang ditahan tiap PIC','Hanya tagihan yang masih berjalan',[tombolCetak()]);
+    var gP=el('div');
+    gP.innerHTML=dPic.map(function(r){
+      var pr=Math.round(r.nilai/maks*100);
+      return '<div style="margin-bottom:13px">'+
+        '<div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px">'+
+          '<b style="font-size:15px">'+esc(r.pic)+'</b>'+
+          '<span class="mono" style="font-size:14px">'+rupiah(r.nilai)+'</span></div>'+
+        '<div class="bar" style="height:8px"><i style="width:'+pr+'%"></i></div>'+
+        '<span style="font-size:11.5px;color:var(--abu)">'+r.jml+' tagihan'+
+          (r.lambat?' · <span class="tanda merah">'+r.lambat+' lewat target</span>':'')+'</span></div>';
+    }).join('');
+    bP._isi.appendChild(gP);
+    w.appendChild(bP);
+  }
 
   var b2=blok('Daftar tagihan','Diurut dari yang paling lama berjalan');
   b2._isi.appendChild(tabel([
@@ -1346,21 +1519,31 @@ function halBiaya(w){
   w.appendChild(b);
 
   var b2=blok('Catat biaya','Upah, material, sewa alat, BBM, operasional lain');
-  b2._isi.appendChild(formulir('Biaya',[
+  var fBiaya=formulir('Biaya',[
     {k:'Tanggal',t:'date',v:hariIni()},
     {k:'Proyek',t:'pilih',o:proyekAktif().map(function(p){return p.Kode})},
     {k:'Kategori',t:'pilih',o:['Upah tenaga kerja','Material','Sewa alat','Operasional (BBM/mobil)','Lainnya']},
     {k:'Uraian'},{k:'Nilai',label:'Nilai (Rp)',t:'number'}
-  ]));
+  ]);
+  b2._isi.appendChild(fBiaya);
   b2._isi.appendChild(el('div','pemisah'));
-  b2._isi.appendChild(tabel([
+  var dBiaya=B.slice(-40).reverse();
+  var tBiaya=tabel([
     {judul:'Tanggal',isi:function(r){return tglIndo(r.Tanggal)}},
     {judul:'Proyek',isi:function(r){return esc(r.Proyek)}},
     {judul:'Kategori',isi:function(r){return esc(r.Kategori)}},
     {judul:'Uraian',isi:function(r){return esc(r.Uraian)}},
     {judul:'Nilai',kanan:1,isi:function(r){return '<span class="mono">'+rupiah(r.Nilai)+'</span>'}},
-    {judul:'Dicatat',isi:function(r){return esc(r.Input)}}
-  ],B.slice(-40).reverse(),'Belum ada biaya tercatat.'));
+    {judul:'Dicatat',isi:function(r){return esc(r.Input)}},
+    kolomAksi('Biaya')
+  ],dBiaya,'Belum ada biaya tercatat.');
+  pasangAksi(tBiaya,'Biaya',dBiaya,fBiaya,function(r){
+    return (r.Kategori||'Biaya')+' — '+(r.Uraian||'tanpa uraian')+' · '+rupiah(r.Nilai)+' ('+tglIndo(r.Tanggal)+')';
+  });
+  b2._isi.appendChild(tBiaya);
+  b2._isi.appendChild(el('p','catatan', S.peran==='kendali'
+    ? 'Tekan Ubah untuk memperbaiki isian yang salah. Penghapusan bersifat permanen dan tercatat di Log Aktivitas.'
+    : 'Salah input? Tekan Ubah untuk memperbaiki. Untuk menghapus data, hubungi Ariel (Project Control).'));
   w.appendChild(b2);
 
   if(S.peran==='kendali'){
@@ -1406,22 +1589,8 @@ function halKendala(w){
     '<div class="kpi d"><span>Penyebab terbanyak</span><b style="font-size:16px">'+(urut[0]||'—')+'</b><small>'+(urut[0]?perKat[urut[0]]+' kali':'belum ada data')+'</small></div>';
   w.appendChild(kb);
 
-  var b=blok('Daftar kendala','');
-  b._isi.appendChild(tabel([
-    {judul:'Tanggal',isi:function(r){return tglIndo(r.Tanggal)}},
-    {judul:'Proyek',isi:function(r){return '<b>'+esc(r.Proyek)+'</b>'}},
-    {judul:'Kategori',isi:function(r){return '<span class="tanda biru">'+esc(r.Kategori)+'</span>'}},
-    {judul:'Uraian',isi:function(r){return esc(r.Uraian)}},
-    {judul:'Dampak',isi:function(r){return esc(r.Dampak)}},
-    {judul:'PIC',isi:function(r){return esc(r.PIC)}},
-    {judul:'Status',isi:function(r){
-      var s=String(r.Status||'Terbuka');
-      return '<span class="tanda '+(/SELESAI|CLOSE/i.test(s)?'hijau':'merah')+'">'+esc(s)+'</span>'}}
-  ],K.slice(0,120),'Belum ada kendala tercatat.'));
-  w.appendChild(b);
-
-  var b2=blok('Catat kendala','');
-  b2._isi.appendChild(formulir('Kendala',[
+  var b2=blok('Catat kendala','Salah input? Tekan Ubah pada baris di daftar bawah.');
+  var fKendala=formulir('Kendala',[
     {k:'Tanggal',t:'date',v:hariIni()},
     {k:'Proyek',t:'pilih',o:proyekAktif().map(function(p){return p.Kode})},
     {k:'Kategori',t:'pilih',o:['Hujan / cuaca','Permit belum turun','Emergency kilang','Tenaga kurang','Absensi tinggi','Material kurang','Alat bermasalah','Request belum turun','Kendala user','ID badge / akses','Produktivitas rendah','Lainnya']},
@@ -1430,7 +1599,31 @@ function halKendala(w){
     {k:'PIC'},
     {k:'Status',t:'pilih',o:['Terbuka','Sedang ditangani','Selesai']},
     {k:'TanggalSelesai',label:'Tanggal selesai',t:'date'}
-  ]));
+  ]);
+  b2._isi.appendChild(fKendala);
+
+  var b=blok('Daftar kendala','');
+  var dKendala=K.slice(0,120);
+  var tKendala=tabel([
+    {judul:'Tanggal',isi:function(r){return tglIndo(r.Tanggal)}},
+    {judul:'Proyek',isi:function(r){return '<b>'+esc(r.Proyek)+'</b>'}},
+    {judul:'Kategori',isi:function(r){return '<span class="tanda biru">'+esc(r.Kategori)+'</span>'}},
+    {judul:'Uraian',isi:function(r){return esc(r.Uraian)}},
+    {judul:'Dampak',isi:function(r){return esc(r.Dampak)}},
+    {judul:'PIC',isi:function(r){return esc(r.PIC)}},
+    {judul:'Status',isi:function(r){
+      var s=String(r.Status||'Terbuka');
+      return '<span class="tanda '+(/SELESAI|CLOSE/i.test(s)?'hijau':'merah')+'">'+esc(s)+'</span>'}},
+    kolomAksi('Kendala')
+  ],dKendala,'Belum ada kendala tercatat.');
+  pasangAksi(tKendala,'Kendala',dKendala,fKendala,function(r){
+    return (r.Proyek||'')+' — '+(r.Kategori||'')+' · '+String(r.Uraian||'tanpa uraian').slice(0,60)+' ('+tglIndo(r.Tanggal)+')';
+  });
+  b._isi.appendChild(tKendala);
+  b._isi.appendChild(el('p','catatan', S.peran==='kendali'
+    ? 'Penghapusan bersifat permanen dan tercatat di Log Aktivitas.'
+    : 'Untuk menghapus kendala, hubungi Ariel (Project Control).'));
+  w.appendChild(b);
   w.appendChild(b2);
 }
 
